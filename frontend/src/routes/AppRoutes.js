@@ -6,7 +6,7 @@ function AppRoutes() {
     <Router>
       <Routes>
         <Route path="/admin/users" element={<UserList />} />
-        {/* Các route khác */}
+         <Route path="/login" element={<Login />} />
       </Routes>
     </Router>
   );
