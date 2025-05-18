@@ -1,15 +1,8 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import Header from './components/Header';
-import Introduction from './pages/Introduction';
-import Contact from './pages/Contact';
-import Login from './pages/Login';
-import AdminPage from './pages/AdminPage';
-import StaffPage from './pages/StaffPage';
-import VolunteerPage from './pages/VolunteerPage';
-import './App.css';
+import Header from '../components/Header';
+import '../App.css';
 
-function HomePage() {
+const Introduction = () => {
   const introText = `Hoạt động nhân đạo là những hành động thể hiện lòng nhân ái...`;
   const importancePoints = [
     "Giúp đỡ những người yếu thế trong xã hội.",
@@ -30,7 +23,7 @@ function HomePage() {
       <Header />
       <main className="content-container">
         <section className="content-section">
-          <h2 className="title">Chào mừng đến với Tổ chức Nhân đạo</h2>
+          <h2 className="title">Giới thiệu về hoạt động nhân đạo</h2>
           <p>{introText}</p>
           <h3>Tầm quan trọng:</h3>
           <ul>
@@ -44,27 +37,8 @@ function HomePage() {
           </ul>
         </section>
       </main>
-      <footer className="footer">
-        <div>Tổ chức Nhân đạo © 2025</div>
-      </footer>
     </div>
   );
-}
+};
 
-function App() {
-  return (
-    <div className="page-container">
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/introduction" element={<Introduction />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/staff" element={<StaffPage />} />
-        <Route path="/volunteer" element={<VolunteerPage />} />
-      </Routes>
-    </div>
-  );
-}
-
-export default App;
+export default Introduction;
