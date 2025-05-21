@@ -12,6 +12,7 @@ const config = {
   }
 };
 
+
 let pool;
 
 async function getConnection() {

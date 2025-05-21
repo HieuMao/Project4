@@ -31,7 +31,8 @@ function UserList() {
 
   const handleUpdate = async () => {
     try {
-      await axios.put(`http://localhost:5000/api/users/update/${editingUser}`, formData);
+     await axios.put(`http://localhost:5000/api/users/${editingUser}`, formData);
+
       setEditingUser(null);
       fetchUsers();
     } catch (err) {
