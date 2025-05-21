@@ -46,7 +46,11 @@ axios.get('http://localhost:5000/api/users')
                 <td>{user.email}</td>
                 <td>{user.role}</td>
                 <td>{user.phone || '-'}</td>
-                <td>{new Date(user.created_at).toLocaleDateString()}</td>
+                <td>
+                  {user.created_at
+                    ? new Date(user.created_at).toLocaleDateString()
+                    : '-'}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -36,8 +36,8 @@ router.post('/register', async (req, res) => {
     .input('password', sql.NVarChar, hash)
     .input('phone', sql.NVarChar, phone)
     .query(`
-      INSERT INTO users (name, email, password, phone)
-      VALUES (@name, @email, @password, @phone)
+      INSERT INTO users (name, email, password, phone, created_at)
+      VALUES (@name, @email, @password, @phone, GETDATE())
     `);
 
   res.json({ message: 'Đăng ký thành công!' });
@@ -48,7 +48,7 @@ router.get('/', async (req, res) => {
   const config = getConfig(req);
   const pool = await sql.connect(config);
   const result = await pool.request()
-    .query('SELECT user_id, name, email, phone FROM users');
+  .query('SELECT user_id, name, email, phone, role, created_at FROM users');
   res.json(result.recordset);
 });
 
