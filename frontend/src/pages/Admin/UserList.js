@@ -40,9 +40,13 @@ function UserList() {
     }
   };
 
-  const handleDelete = async (id) => {
+  //xóa
+const handleDelete = async (id) => {
+  const isConfirmed = window.confirm('Bạn có chắc chắn muốn xóa người dùng này không?');
+  if (!isConfirmed) return;
+
   try {
-    await axios.delete(`http://localhost:5000/api/users/delete/${id}`);
+    await axios.delete(`http://localhost:5000/api/users/${id}`);
     setUsers(prev => prev.filter(u => u.user_id !== id));
   } catch (err) {
     console.error(err);

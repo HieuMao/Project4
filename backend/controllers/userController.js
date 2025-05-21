@@ -132,3 +132,25 @@ exports.updateUser = async (req, res) => {
     res.status(500).json({ message: 'Lỗi server khi cập nhật' });
   }
 };
+
+//xóa
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const id = req.params.id;
+
+    const result = await pool.request()
+      .input('id', sql.Int, id)
+      .query('DELETE FROM Users WHERE user_id = @id');
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ message: 'Người dùng không tồn tại' });
+    }
+
+    res.status(200).json({ message: 'Xóa thành công' });
+  } catch (error) {
+    console.error('Lỗi xóa user:', error);
+    res.status(500).json({ message: 'Lỗi server khi xóa' });
+  }
+};
