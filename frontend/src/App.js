@@ -4,9 +4,11 @@ import Header from './components/Header';
 import Introduction from './pages/Introduction';
 import Contact from './pages/Contact';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import AdminPage from './pages/AdminPage';
 import StaffPage from './pages/StaffPage';
 import VolunteerPage from './pages/VolunteerPage';
+import UserList from './pages/Admin/UserList';
 import './App.css';
 
 function HomePage() {
@@ -60,8 +62,10 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/staff" element={<StaffPage />} />
         <Route path="/volunteer" element={<VolunteerPage />} />
+        <Route path="/admin/users" element={<UserList />} />
       </Routes>
     </div>
   );

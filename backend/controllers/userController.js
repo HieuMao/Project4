@@ -26,6 +26,28 @@ exports.loginUser = async (req, res) => {
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
+exports.registerUser = async (req, res) => {
+  const { name, email, password, phone } = req.body;
+
+  try {
+    // Kiểm tra email đã tồn tại chưa
+    const existingUser = await userModel.findByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email đã được đăng ký' });
+    }
+
+    // Mã hóa mật khẩu
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Tạo user mới
+    await userModel.createUser(name, email, hashedPassword, phone);
+
+    res.status(201).json({ message: 'Đăng ký thành công' });
+  } catch (error) {
+    console.error('Lỗi đăng ký:', error);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
 
 
 /// lấy thông tin user 

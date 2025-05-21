@@ -2,12 +2,13 @@ const sql = require('mssql');
 
 const config = {
   user: 'NguyenHieu',
-  password: 'Mao2462004Mao2462004',
-  server: 'ALABATER',
+  password: 'Mao2462004',
+  server: 'localhost',
   database: 'TTCD4',
   options: {
     encrypt: false,
-    enableArithAbort: true
+    trustServerCertificate: true,
+    instanceName: 'ALABATER'
   }
 };
 
@@ -19,4 +20,4 @@ async function getConnection() {
   return pool;
 }
 
-module.exports = { getConnection };
+module.exports = { getConnection, sql };

@@ -13,3 +13,13 @@ exports.getAllUsers = async () => {
   const result = await pool.request().query('SELECT * FROM users');
   return result.recordset;
 };
+exports.createUser = async (name, email, password, phone) => {
+  const pool = await getConnection();
+  const result = await pool.request()
+    .input('name', sql.NVarChar, name)
+    .input('email', sql.NVarChar, email)
+    .input('password', sql.NVarChar, password)
+    .input('phone', sql.NVarChar, phone)
+    .query('INSERT INTO users (name, email, password, phone) VALUES (@name, @email, @password, @phone)');
+  return result;
+};
