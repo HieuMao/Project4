@@ -9,6 +9,8 @@ import AdminPage from './pages/AdminPage';
 import StaffPage from './pages/StaffPage';
 import VolunteerPage from './pages/VolunteerPage';
 import UserList from './pages/Admin/UserList';
+import ActivityList from './pages/Activities/ActivityList';
+
 import './App.css';
 
 function HomePage() {
@@ -66,6 +68,10 @@ function App() {
         <Route path="/staff" element={<StaffPage />} />
         <Route path="/volunteer" element={<VolunteerPage />} />
         <Route path="/admin/users" element={<UserList />} />
+        <Route path="/activities" element={<ActivityList />} />
+        <Route path="/admin/activities" element={<ActivityList />} />
+ 
+        
       </Routes>
     </div>
   );
