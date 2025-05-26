@@ -15,10 +15,10 @@ const Contact = () => {
     e.preventDefault();
     try {
       await sendContactMessage(formData);
-      setStatus('Tin nhắn đã được gửi thành công!');
+      setStatus('Tin nhắn đã được gửi thành công! 🎉');
       setFormData({ name: '', email: '', message: '' });
     } catch (error) {
-      setStatus('Có lỗi xảy ra. Vui lòng thử lại.');
+      setStatus('Có lỗi xảy ra. Vui lòng thử lại. 😞');
     }
   };
 
@@ -28,9 +28,11 @@ const Contact = () => {
       <main className="content-container">
         <section className="content-section">
           <h2 className="title">Liên hệ</h2>
-          <p>Email: caovanbinh987@email.com</p>
-          <p>Điện thoại: 0987 05 1975</p>
-          <p>Địa chỉ: 122 Đường Lê Thánh Tông, Sầm Sơn, TP. Thanh Hóa</p>
+          <div className="contact-info">
+            <p><strong>Email:</strong> caovanbinh987@email.com</p>
+            <p><strong>Điện thoại:</strong> 0987 05 1975</p>
+            <p><strong>Địa chỉ:</strong> 122 Đường Lê Thánh Tông, Sầm Sơn, TP. Thanh Hóa</p>
+          </div>
           <h3>Gửi tin nhắn cho chúng tôi</h3>
           <form onSubmit={handleSubmit} className="contact-form">
             <input
@@ -60,11 +62,10 @@ const Contact = () => {
               className="form-textarea"
             ></textarea>
             <button type="submit" className="nav-button">Gửi</button>
-            {status && <p>{status}</p>}
+            {status && <p className={status.includes('thành công') ? 'success-message' : 'error-message'}>{status}</p>}
           </form>
         </section>
       </main>
-
     </div>
   );
 };
