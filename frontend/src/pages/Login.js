@@ -4,6 +4,8 @@ import Header from '../components/Header';
 import '../App.css';
 import axios from 'axios';
 
+
+
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,6 +25,8 @@ function Login() {
       alert('Đăng nhập thành công! 🎉');
 
       const user = res.data.user;
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));  
       if (user.role === 'admin') window.location.href = '/admin';
       else if (user.role === 'staff') window.location.href = '/staff';
       else if (user.role === 'volunteer') window.location.href = '/volunteer';

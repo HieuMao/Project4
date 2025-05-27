@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+const user = JSON.parse(localStorage.getItem('user'));
+const isVolunteer = user?.role === 'volunteer';
+
 
 function ActivityList() {
   const [activities, setActivities] = useState([]);
   const [registeredActivities, setRegisteredActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [formMode, setFormMode] = useState(null);
+  const [formMode, setFormMode] = useState(null); // 'create' or 'edit'
   const [editingActivity, setEditingActivity] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -20,37 +22,26 @@ function ActivityList() {
     image: null,
   });
 
-  const navigate = useNavigate();
+  // Check if user is logged in
   const token = localStorage.getItem('token');
   const isLoggedIn = !!token;
 
-  // Get user role from JWT
-  let userRole = null;
-  if (isLoggedIn) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      userRole = payload.role; // From authController.js JWT
-    } catch (err) {
-      console.error('Error decoding token:', err);
-      setError('Phiên đăng nhập không hợp lệ');
-    }
-  }
-
-  const isAdmin = userRole === 'admin';
-
-  // Set axios headers
+  // Set axios default headers
   if (isLoggedIn) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   } else {
     delete axios.defaults.headers.common['Authorization'];
   }
 
+  // Fetch activities and user registrations
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch activities
         const activitiesRes = await axios.get('http://localhost:5000/api/activities');
         setActivities(activitiesRes.data);
 
+        // Fetch user registrations if logged in
         if (isLoggedIn) {
           const registrationsRes = await axios.get('http://localhost:5000/api/volunteer/user');
           setRegisteredActivities(registrationsRes.data);
@@ -65,11 +56,8 @@ function ActivityList() {
     fetchData();
   }, [isLoggedIn]);
 
+  // Open create form
   const handleCreateClick = () => {
-    if (!isAdmin) {
-      setError('Chỉ admin có thể tạo hoạt động');
-      return;
-    }
     setFormMode('create');
     setFormData({
       name: '',
@@ -83,11 +71,8 @@ function ActivityList() {
     });
   };
 
+  // Open edit form
   const handleEditClick = (activity) => {
-    if (!isAdmin) {
-      setError('Chỉ admin có thể sửa hoạt động');
-      return;
-    }
     setFormMode('edit');
     setEditingActivity(activity.activity_id);
     setFormData({
@@ -102,21 +87,20 @@ function ActivityList() {
     });
   };
 
+  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
+  // Handle file input change
   const handleFileChange = (e) => {
     setFormData({ ...formData, image: e.target.files[0] });
   };
 
+  // Handle form submission (create or update)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isAdmin) {
-      setError('Chỉ admin có thể thực hiện hành động này');
-      return;
-    }
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
@@ -162,11 +146,8 @@ function ActivityList() {
     }
   };
 
+  // Handle volunteer registration
   const handleRegister = async (activity_id) => {
-    if (!isLoggedIn) {
-      navigate('/login');
-      return;
-    }
     try {
       const response = await axios.post('http://localhost:5000/api/volunteer/register', {
         activity_id
@@ -179,6 +160,7 @@ function ActivityList() {
     }
   };
 
+  // Handle cancel registration
   const handleCancelRegistration = async (activity_id) => {
     if (!window.confirm('Bạn có chắc muốn hủy đăng ký hoạt động này?')) return;
     try {
@@ -193,11 +175,8 @@ function ActivityList() {
     }
   };
 
+  // Handle delete
   const handleDelete = async (id) => {
-    if (!isAdmin) {
-      setError('Chỉ admin có thể xóa hoạt động');
-      return;
-    }
     if (!window.confirm('Bạn có chắc muốn xóa hoạt động này?')) return;
     try {
       await axios.delete(`http://localhost:5000/api/activities/${id}`);
@@ -208,6 +187,7 @@ function ActivityList() {
     }
   };
 
+  // Close form modal
   const handleCancel = () => {
     setFormMode(null);
     setEditingActivity(null);
@@ -230,14 +210,12 @@ function ActivityList() {
     <div className="p-5 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Danh sách hoạt động nhân đạo</h2>
-        {isAdmin && (
-          <button
-            onClick={handleCreateClick}
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-          >
-            Thêm hoạt động
-          </button>
-        )}
+        <button
+          onClick={handleCreateClick}
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+        >
+          Thêm hoạt động
+        </button>
       </div>
       <table className="w-full border-collapse border border-gray-300">
         <thead>
@@ -281,45 +259,47 @@ function ActivityList() {
               </td>
               <td className="border border-gray-300 p-2">{act.status}</td>
               <td className="border border-gray-300 p-2">
-                {isAdmin && (
-                  <>
-                    <button
-                      onClick={() => handleEditClick(act)}
-                      className="bg-blue-500 text-white px-3 py-1 rounded mr-2 hover:bg-blue-600"
-                    >
-                      Sửa
-                    </button>
-                    <button
-                      onClick={() => handleDelete(act.activity_id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded mr-2 hover:bg-red-600"
-                    >
-                      Xóa
-                    </button>
-                  </>
-                )}
-                {(isLoggedIn && registeredActivities.includes(act.activity_id)) ? (
-                  <button
-                    onClick={() => handleCancelRegistration(act.activity_id)}
-                    className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600"
-                  >
-                    Hủy đăng ký
-                  </button>
+                <button
+                  onClick={() => handleEditClick(act)}
+                  className="bg-blue-500 text-white px-3 py-1 rounded mr-2 hover:bg-blue-600"
+                >
+                  Sửa
+                </button>
+                <button
+                  onClick={() => handleDelete(act.activity_id)}
+                  className="bg-red-500 text-white px-3 py-1 rounded mr-2 hover:bg-red-600"
+                >
+                  Xóa
+                </button>
+                {isLoggedIn ? (
+                  isVolunteer ? (
+                    registeredActivities.includes(act.activity_id) ? (
+                      <button onClick={() => handleCancelRegistration(act.activity_id)} className="...">
+                        Hủy đăng ký
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleRegister(act.activity_id)}
+                        className="..."
+                        disabled={act.status === 'completed'}
+                      >
+                        Đăng ký
+                      </button>
+                    )
+                  ) : (
+                    <span className="text-gray-500">Chỉ tình nguyện viên mới được đăng ký</span>
+                  )
                 ) : (
-                  <button
-                    onClick={() => handleRegister(act.activity_id)}
-                    className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-                    disabled={act.status === 'completed'}
-                  >
-                    Đăng ký
-                  </button>
+                  <span className="text-gray-500">Đăng nhập để đăng ký</span>
                 )}
+
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {formMode && isAdmin && (
+      {formMode && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">

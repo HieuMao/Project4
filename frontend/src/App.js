@@ -7,7 +7,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminPage from './pages/AdminPage';
 import StaffPage from './pages/StaffPage';
-import VolunteerPage from './pages/VolunteerPage';
+import VolunteerPage from './pages/Volunteer/VolunteerPage';
 import UserList from './pages/Admin/UserList';
 import ActivityList from './pages/Activities/ActivityList';
 

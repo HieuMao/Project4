@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 const user = JSON.parse(localStorage.getItem('user'));
+const token = localStorage.getItem('token');
+const isLoggedIn = !!token;
 const isVolunteer = user?.role === 'volunteer';
+
 
 
 function ActivityList() {
