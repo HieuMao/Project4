@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function ActivityList() {
   const [activities, setActivities] = useState([]);
+  const [registeredActivities, setRegisteredActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [formMode, setFormMode] = useState(null); // 'create' or 'edit'
+  const [formMode, setFormMode] = useState(null);
   const [editingActivity, setEditingActivity] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -18,20 +20,36 @@ function ActivityList() {
     image: null,
   });
 
-  // Fetch activities
+  const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+  const isLoggedIn = !!token;
+
+  if (isLoggedIn) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete axios.defaults.headers.common['Authorization'];
+  }
+
   useEffect(() => {
-    axios.get('http://localhost:5000/api/activities')
-      .then(res => {
-        setActivities(res.data);
+    const fetchData = async () => {
+      try {
+        const activitiesRes = await axios.get('http://localhost:5000/api/activities');
+        setActivities(activitiesRes.data);
+
+        if (isLoggedIn) {
+          const registrationsRes = await axios.get('http://localhost:5000/api/volunteer/user');
+          setRegisteredActivities(registrationsRes.data);
+        }
+
         setLoading(false);
-      })
-      .catch(err => {
+      } catch (err) {
         setError('Lỗi lấy dữ liệu: ' + err.message);
         setLoading(false);
-      });
-  }, []);
+      }
+    };
+    fetchData();
+  }, [isLoggedIn]);
 
-  // Open create form
   const handleCreateClick = () => {
     setFormMode('create');
     setFormData({
@@ -46,7 +64,6 @@ function ActivityList() {
     });
   };
 
-  // Open edit form
   const handleEditClick = (activity) => {
     setFormMode('edit');
     setEditingActivity(activity.activity_id);
@@ -62,18 +79,15 @@ function ActivityList() {
     });
   };
 
-  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  // Handle file input change
   const handleFileChange = (e) => {
     setFormData({ ...formData, image: e.target.files[0] });
   };
 
-  // Handle form submission (create or update)
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -121,7 +135,37 @@ function ActivityList() {
     }
   };
 
-  // Handle delete
+  const handleRegister = async (activity_id) => {
+    if (!isLoggedIn) {
+      navigate('/login'); // Redirect to login page
+      return;
+    }
+    try {
+      const response = await axios.post('http://localhost:5000/api/volunteer/register', {
+        activity_id
+      });
+      setRegisteredActivities([...registeredActivities, activity_id]);
+      alert(response.data.message);
+      setError(null);
+    } catch (err) {
+      setError('Lỗi đăng ký hoạt động: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleCancelRegistration = async (activity_id) => {
+    if (!window.confirm('Bạn có chắc muốn hủy đăng ký hoạt động này?')) return;
+    try {
+      const response = await axios.post('http://localhost:5000/api/volunteer/cancel', {
+        activity_id
+      });
+      setRegisteredActivities(registeredActivities.filter(id => id !== activity_id));
+      alert(response.data.message);
+      setError(null);
+    } catch (err) {
+      setError('Lỗi hủy đăng ký: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('Bạn có chắc muốn xóa hoạt động này?')) return;
     try {
@@ -133,7 +177,6 @@ function ActivityList() {
     }
   };
 
-  // Close form modal
   const handleCancel = () => {
     setFormMode(null);
     setEditingActivity(null);
@@ -213,10 +256,26 @@ function ActivityList() {
                 </button>
                 <button
                   onClick={() => handleDelete(act.activity_id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                  className="bg-red-500 text-white px-3 py-1 rounded mr-2 hover:bg-red-600"
                 >
                   Xóa
                 </button>
+                {isLoggedIn && registeredActivities.includes(act.activity_id) ? (
+                  <button
+                    onClick={() => handleCancelRegistration(act.activity_id)}
+                    className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600"
+                  >
+                    Hủy đăng ký
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleRegister(act.activity_id)}
+                    className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+                    disabled={act.status === 'completed'}
+                  >
+                    Đăng ký
+                  </button>
+                )}
               </td>
             </tr>
           ))}
@@ -252,14 +311,20 @@ function ActivityList() {
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium">Loại</label>
-                <input
-                  type="text"
+                <select
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
                   className="w-full border border-gray-300 p-2 rounded"
                   required
-                />
+                >
+                  <option value="">Chọn loại</option>
+                  <option value="cuu_tro">Cứu trợ</option>
+                  <option value="giao_duc">Giáo dục</option>
+                  <option value="y_te">Y tế</option>
+                  <option value="sinh_ke">Sinh kế</option>
+                  <option value="khac">Khác</option>
+                </select>
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium">Địa điểm</label>
@@ -295,14 +360,18 @@ function ActivityList() {
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium">Trạng thái</label>
-                <input
-                  type="text"
+                <select
                   name="status"
                   value={formData.status}
                   onChange={handleInputChange}
                   className="w-full border border-gray-300 p-2 rounded"
                   required
-                />
+                >
+                  <option value="">Chọn trạng thái</option>
+                  <option value="planned">Lên kế hoạch</option>
+                  <option value="ongoing">Đang diễn ra</option>
+                  <option value="completed">Hoàn thành</option>
+                </select>
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium">Ảnh</label>

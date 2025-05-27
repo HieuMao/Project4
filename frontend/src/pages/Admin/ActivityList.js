@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function ActivityList() {
   const [activities, setActivities] = useState([]);
+  const [registeredActivities, setRegisteredActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [formMode, setFormMode] = useState(null); // 'create' or 'edit'
+  const [formMode, setFormMode] = useState(null);
   const [editingActivity, setEditingActivity] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -15,25 +17,59 @@ function ActivityList() {
     start_date: '',
     end_date: '',
     status: '',
-    created_by: '',
     image: null,
   });
 
-  // Fetch activities
+  const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+  const isLoggedIn = !!token;
+
+  // Get user role from JWT
+  let userRole = null;
+  if (isLoggedIn) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      userRole = payload.role; // From authController.js JWT
+    } catch (err) {
+      console.error('Error decoding token:', err);
+      setError('Phiên đăng nhập không hợp lệ');
+    }
+  }
+
+  const isAdmin = userRole === 'admin';
+
+  // Set axios headers
+  if (isLoggedIn) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete axios.defaults.headers.common['Authorization'];
+  }
+
   useEffect(() => {
-    axios.get('http://localhost:5000/api/activities')
-      .then(res => {
-        setActivities(res.data);
+    const fetchData = async () => {
+      try {
+        const activitiesRes = await axios.get('http://localhost:5000/api/activities');
+        setActivities(activitiesRes.data);
+
+        if (isLoggedIn) {
+          const registrationsRes = await axios.get('http://localhost:5000/api/volunteer/user');
+          setRegisteredActivities(registrationsRes.data);
+        }
+
         setLoading(false);
-      })
-      .catch(err => {
+      } catch (err) {
         setError('Lỗi lấy dữ liệu: ' + err.message);
         setLoading(false);
-      });
-  }, []);
+      }
+    };
+    fetchData();
+  }, [isLoggedIn]);
 
-  // Open create form
   const handleCreateClick = () => {
+    if (!isAdmin) {
+      setError('Chỉ admin có thể tạo hoạt động');
+      return;
+    }
     setFormMode('create');
     setFormData({
       name: '',
@@ -43,13 +79,15 @@ function ActivityList() {
       start_date: '',
       end_date: '',
       status: '',
-      created_by: '',
       image: null,
     });
   };
 
-  // Open edit form
   const handleEditClick = (activity) => {
+    if (!isAdmin) {
+      setError('Chỉ admin có thể sửa hoạt động');
+      return;
+    }
     setFormMode('edit');
     setEditingActivity(activity.activity_id);
     setFormData({
@@ -60,25 +98,25 @@ function ActivityList() {
       start_date: activity.start_date ? new Date(activity.start_date).toISOString().split('T')[0] : '',
       end_date: activity.end_date ? new Date(activity.end_date).toISOString().split('T')[0] : '',
       status: activity.status,
-      created_by: activity.created_by,
       image: null,
     });
   };
 
-  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  // Handle file input change
   const handleFileChange = (e) => {
     setFormData({ ...formData, image: e.target.files[0] });
   };
 
-  // Handle form submission (create or update)
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isAdmin) {
+      setError('Chỉ admin có thể thực hiện hành động này');
+      return;
+    }
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('name', formData.name);
@@ -88,7 +126,6 @@ function ActivityList() {
       formDataToSend.append('start_date', formData.start_date);
       formDataToSend.append('end_date', formData.end_date);
       formDataToSend.append('status', formData.status);
-      formDataToSend.append('created_by', formData.created_by);
       if (formData.image) {
         formDataToSend.append('image', formData.image);
       }
@@ -117,7 +154,6 @@ function ActivityList() {
         start_date: '',
         end_date: '',
         status: '',
-        created_by: '',
         image: null,
       });
       setError(null);
@@ -126,8 +162,42 @@ function ActivityList() {
     }
   };
 
-  // Handle delete
+  const handleRegister = async (activity_id) => {
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const response = await axios.post('http://localhost:5000/api/volunteer/register', {
+        activity_id
+      });
+      setRegisteredActivities([...registeredActivities, activity_id]);
+      alert(response.data.message);
+      setError(null);
+    } catch (err) {
+      setError('Lỗi đăng ký hoạt động: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleCancelRegistration = async (activity_id) => {
+    if (!window.confirm('Bạn có chắc muốn hủy đăng ký hoạt động này?')) return;
+    try {
+      const response = await axios.post('http://localhost:5000/api/volunteer/cancel', {
+        activity_id
+      });
+      setRegisteredActivities(registeredActivities.filter(id => id !== activity_id));
+      alert(response.data.message);
+      setError(null);
+    } catch (err) {
+      setError('Lỗi hủy đăng ký: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
   const handleDelete = async (id) => {
+    if (!isAdmin) {
+      setError('Chỉ admin có thể xóa hoạt động');
+      return;
+    }
     if (!window.confirm('Bạn có chắc muốn xóa hoạt động này?')) return;
     try {
       await axios.delete(`http://localhost:5000/api/activities/${id}`);
@@ -138,7 +208,6 @@ function ActivityList() {
     }
   };
 
-  // Close form modal
   const handleCancel = () => {
     setFormMode(null);
     setEditingActivity(null);
@@ -150,7 +219,6 @@ function ActivityList() {
       start_date: '',
       end_date: '',
       status: '',
-      created_by: '',
       image: null,
     });
   };
@@ -162,12 +230,14 @@ function ActivityList() {
     <div className="p-5 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Danh sách hoạt động nhân đạo</h2>
-        <button
-          onClick={handleCreateClick}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-        >
-          Thêm hoạt động
-        </button>
+        {isAdmin && (
+          <button
+            onClick={handleCreateClick}
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          >
+            Thêm hoạt động
+          </button>
+        )}
       </div>
       <table className="w-full border-collapse border border-gray-300">
         <thead>
@@ -211,25 +281,45 @@ function ActivityList() {
               </td>
               <td className="border border-gray-300 p-2">{act.status}</td>
               <td className="border border-gray-300 p-2">
-                <button
-                  onClick={() => handleEditClick(act)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded mr-2 hover:bg-blue-600"
-                >
-                  Sửa
-                </button>
-                <button
-                  onClick={() => handleDelete(act.activity_id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                >
-                  Xóa
-                </button>
+                {isAdmin && (
+                  <>
+                    <button
+                      onClick={() => handleEditClick(act)}
+                      className="bg-blue-500 text-white px-3 py-1 rounded mr-2 hover:bg-blue-600"
+                    >
+                      Sửa
+                    </button>
+                    <button
+                      onClick={() => handleDelete(act.activity_id)}
+                      className="bg-red-500 text-white px-3 py-1 rounded mr-2 hover:bg-red-600"
+                    >
+                      Xóa
+                    </button>
+                  </>
+                )}
+                {(isLoggedIn && registeredActivities.includes(act.activity_id)) ? (
+                  <button
+                    onClick={() => handleCancelRegistration(act.activity_id)}
+                    className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600"
+                  >
+                    Hủy đăng ký
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleRegister(act.activity_id)}
+                    className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+                    disabled={act.status === 'completed'}
+                  >
+                    Đăng ký
+                  </button>
+                )}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {formMode && (
+      {formMode && isAdmin && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">
@@ -258,14 +348,20 @@ function ActivityList() {
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium">Loại</label>
-                <input
-                  type="text"
+                <select
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
                   className="w-full border border-gray-300 p-2 rounded"
                   required
-                />
+                >
+                  <option value="">Chọn loại</option>
+                  <option value="cuu_tro">Cứu trợ</option>
+                  <option value="giao_duc">Giáo dục</option>
+                  <option value="y_te">Y tế</option>
+                  <option value="sinh_ke">Sinh kế</option>
+                  <option value="khac">Khác</option>
+                </select>
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium">Địa điểm</label>
@@ -301,25 +397,18 @@ function ActivityList() {
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium">Trạng thái</label>
-                <input
-                  type="text"
+                <select
                   name="status"
                   value={formData.status}
                   onChange={handleInputChange}
                   className="w-full border border-gray-300 p-2 rounded"
                   required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium">Người tạo (ID)</label>
-                <input
-                  type="number"
-                  name="created_by"
-                  value={formData.created_by}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 p-2 rounded"
-                  required
-                />
+                >
+                  <option value="">Chọn trạng thái</option>
+                  <option value="planned">Lên kế hoạch</option>
+                  <option value="ongoing">Đang diễn ra</option>
+                  <option value="completed">Hoàn thành</option>
+                </select>
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium">Ảnh</label>

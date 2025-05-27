@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const userRoutes = require('./routes/userRoutes');
 const activityRoutes = require('./routes/activityRoutes');
+const volunteerRoutes = require('./routes/volunteerRoutes');
 const { sql } = require('./config/db'); // Đảm bảo bạn có `getConnection` ở file này
 
 const app = express();
@@ -56,6 +57,7 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
 // Gắn các route API
 app.use('/api/users', userRoutes);
 app.use('/api/activities', activityRoutes);
+app.use('/api/volunteer', volunteerRoutes);
 
 // Khởi động server
 app.listen(PORT, () => {
