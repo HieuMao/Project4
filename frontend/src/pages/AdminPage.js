@@ -2,6 +2,8 @@ import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import UserList from './Admin/UserList';  
 import ActivityList from './Activities/ActivityList'; // Updated path
+import ActivityMembers from './Admin/ActivityMembers';
+
 
 const user = JSON.parse(localStorage.getItem('user'));
 const isAdmin = user?.role === 'admin';
@@ -18,6 +20,8 @@ const AdminLayout = ({ children }) => (
         <Link to="/admin/volunteers" className="nav-button">Quản lý Tình nguyện viên</Link>
         <Link to="/admin/donations" className="nav-button">Quản lý Quyên góp</Link>
         <Link to="/admin/reports" className="nav-button">Báo cáo - Thống kê</Link>
+        <Link to="/admin/activity-members" className="nav-button">Thành viên đăng ký hoạt động</Link>
+
       </nav>
     </header>
     <main style={{ padding: '20px' }}>
@@ -47,6 +51,8 @@ function AdminPage() {
         <Route path="volunteers" element={<Placeholder title="Quản lý Tình nguyện viên" />} />
         <Route path="donations" element={<Placeholder title="Quản lý Quyên góp" />} />
         <Route path="reports" element={<Placeholder title="Báo cáo - Thống kê" />} />
+        <Route path="activity-members" element={<ActivityMembers />} />
+
       </Routes>
     </AdminLayout>
   );

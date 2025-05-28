@@ -139,3 +139,62 @@ exports.cancelRegistration = async (req, res) => {
     });
   }
 };
+exports.getActivitiesWithMembers = async (req, res) => {
+  try {
+    const user_id = req.user.user_id;  // Lấy user_id từ token (giả sử đã decode)
+
+    const pool = await getConnection();
+
+    const query = `
+      SELECT 
+        a.activity_id,
+        a.name AS activity_name,
+        a.status,
+        a.start_date,
+        a.end_date,
+        vp.user_id AS member_id,
+        u.name AS member_name
+      FROM activities a
+      LEFT JOIN volunteer_participation vp ON a.activity_id = vp.activity_id AND vp.status = 'pending'
+      LEFT JOIN users u ON vp.user_id = u.user_id
+      WHERE EXISTS (
+        SELECT 1 FROM volunteer_participation vp2 WHERE vp2.activity_id = a.activity_id AND vp2.user_id = @user_id AND vp2.status = 'pending'
+      )
+      ORDER BY a.activity_id, vp.user_id
+    `;
+
+    const request = pool.request();
+    request.input('user_id', sql.Int, user_id);
+
+    const result = await request.query(query);
+
+    // Gom nhóm hoạt động theo activity_id
+    const activitiesMap = {};
+
+    result.recordset.forEach(row => {
+      if (!activitiesMap[row.activity_id]) {
+        activitiesMap[row.activity_id] = {
+          activity_id: row.activity_id,
+          activity_name: row.activity_name,
+          status: row.status,
+          start_date: row.start_date,
+          end_date: row.end_date,
+          members: []
+        };
+      }
+      if (row.member_id) {
+        activitiesMap[row.activity_id].members.push({
+          user_id: row.member_id,
+          name: row.member_name
+        });
+      }
+    });
+
+    const activities = Object.values(activitiesMap);
+
+    res.status(200).json({ activities });
+  } catch (err) {
+    console.error('Lỗi lấy danh sách hoạt động:', err);
+    res.status(500).json({ error: 'Lấy danh sách hoạt động thất bại', detail: err.message });
+  }
+};
