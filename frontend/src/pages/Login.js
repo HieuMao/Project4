@@ -27,7 +27,7 @@ function Login() {
       const user = res.data.user;
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));  
-      if (user.role === 'admin') window.location.href = '/admin';
+      if (user.role === 'admin') window.location.href = '/';
       else if (user.role === 'staff') window.location.href = '/staff';
       else if (user.role === 'volunteer') window.location.href = '/volunteer';
       else window.location.href = '/';

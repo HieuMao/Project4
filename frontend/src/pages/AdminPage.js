@@ -1,6 +1,10 @@
 import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
-import UserList from './Admin/UserList';
+import UserList from './Admin/UserList';  
+import ActivityList from './Activities/ActivityList'; // Updated path
+
+const user = JSON.parse(localStorage.getItem('user'));
+const isAdmin = user?.role === 'admin';
 
 // Giao diện chung với menu cho admin
 const AdminLayout = ({ children }) => (
@@ -30,12 +34,16 @@ const Placeholder = ({ title }) => (
 );
 
 function AdminPage() {
+  if (!isAdmin) {
+    return <div>Bạn không có quyền truy cập trang này.</div>;
+  }
+
   return (
     <AdminLayout>
       <Routes>
         <Route index element={<div>Chào mừng đến trang Admin</div>} />
         <Route path="users" element={<UserList />} />
-        <Route path="activities" element={<Placeholder title="Quản lý Hoạt động" />} />
+        <Route path="activities" element={<ActivityList mode="admin" />} />
         <Route path="volunteers" element={<Placeholder title="Quản lý Tình nguyện viên" />} />
         <Route path="donations" element={<Placeholder title="Quản lý Quyên góp" />} />
         <Route path="reports" element={<Placeholder title="Báo cáo - Thống kê" />} />

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
 import Introduction from './pages/Introduction';
 import Contact from './pages/Contact';
@@ -7,8 +7,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminPage from './pages/AdminPage';
 import StaffPage from './pages/StaffPage';
+import ActivityList from './pages/Activities/ActivityList';
 import VolunteerPage from './pages/Volunteer/VolunteerPage';
-import UserList from './pages/Admin/UserList';
 import './App.css';
 
 function HomePage() {
@@ -19,12 +19,10 @@ function HomePage() {
     { name: "Phát triển sinh kế", description: "Người dân được hỗ trợ công cụ và kỹ năng để phát triển kinh tế.", image: "/phat-trien-sinh-ke.jpg" },
     { name: "Bảo vệ quyền lợi", description: "Hoạt động tuyên truyền và bảo vệ quyền con người.", image: "/bao-ve-quyen-loi.jpg" },
     { name: "Hỗ trợ môi trường", description: "Tình nguyện viên tham gia trồng cây và làm sạch môi trường.", image: "/ho-tro-moi-truong.jpg" }
-
   ];
 
   return (
     <div className="page-container">
-      <Header />
       <main className="content-container">
         <section className="content-section">
           <h2 className="title">Chào mừng đến với Tổ chức Nhân đạo</h2>
@@ -48,19 +46,68 @@ function HomePage() {
   );
 }
 
+function ProtectedRoute({ children, allowedRoles }) {
+  const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user'));
+  const userRole = user?.role || null;
+
+  useEffect(() => {
+    console.log('ProtectedRoute - token:', token, 'userRole:', userRole, 'allowedRoles:', allowedRoles);
+    if (!token) {
+      navigate('/login');
+    } else if (allowedRoles && !allowedRoles.includes(userRole)) {
+      navigate('/');
+    }
+  }, [token, userRole, navigate, allowedRoles]);
+
+  return token && (!allowedRoles || allowedRoles.includes(userRole)) ? children : null;
+}
+
 function App() {
+  const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user'));
+  const userRole = user?.role || null;
+
+  useEffect(() => {
+    console.log('App useEffect - token:', token, 'userRole:', userRole, 'pathname:', window.location.pathname);
+    if (token && window.location.pathname === '/') {
+      switch (userRole) {
+        case 'admin':
+          console.log('Redirecting admin to /admin');
+          navigate('/admin');
+          break;
+        case 'volunteer':
+          console.log('Redirecting volunteer to homepage');
+          navigate('/');
+          break;
+        case 'staff':
+          console.log('Redirecting staff to /staff');
+          navigate('/staff');
+          break;
+        default:
+          console.log('No role match, staying on homepage');
+          break;
+      }
+    }
+  }, [token, userRole, navigate]);
+
+  const activitiesMode = userRole === 'admin' ? 'admin' : 'view';
+
   return (
     <div className="page-container">
+      <Header />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/introduction" element={<Introduction />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/admin" element={<AdminPage />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/staff" element={<StaffPage />} />
-        <Route path="/volunteer" element={<VolunteerPage />} />
-        <Route path="/admin/users" element={<UserList />} />
+        <Route path="/activities" element={<ProtectedRoute><ActivityList mode={activitiesMode} /></ProtectedRoute>} />
+        <Route path="/admin/*" element={<ProtectedRoute allowedRoles={['admin']}><AdminPage /></ProtectedRoute>} />
+        <Route path="/staff" element={<ProtectedRoute allowedRoles={['staff']}><StaffPage /></ProtectedRoute>} />
+        <Route path="/volunteer/*" element={<ProtectedRoute allowedRoles={['volunteer']}><VolunteerPage /></ProtectedRoute>} />
       </Routes>
     </div>
   );

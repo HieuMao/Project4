@@ -1,15 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-const user = JSON.parse(localStorage.getItem('user'));
-const isVolunteer = user?.role === 'volunteer';
+import { useNavigate } from 'react-router-dom';
 
+function ActivityList({ mode = 'view' }) {
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem('user'));
+  const token = localStorage.getItem('token');
+  const isLoggedIn = !!token;
 
-function ActivityList() {
+  console.log('ActivityList - mode:', mode, 'user:', user);
+
+  const isAdmin = mode === 'admin';
+  const isVolunteer = mode === 'volunteer';
+  const canRegister = isLoggedIn && (isVolunteer || isAdmin || user?.role === 'staff');
+
+  console.log('ActivityList - isAdmin:', isAdmin, 'isVolunteer:', isVolunteer, 'canRegister:', canRegister);
+
   const [activities, setActivities] = useState([]);
   const [registeredActivities, setRegisteredActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [formMode, setFormMode] = useState(null); // 'create' or 'edit'
+  const [formMode, setFormMode] = useState(null);
   const [editingActivity, setEditingActivity] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -22,27 +33,21 @@ function ActivityList() {
     image: null,
   });
 
-  // Check if user is logged in
-  const token = localStorage.getItem('token');
-  const isLoggedIn = !!token;
-
-  // Set axios default headers
+  // Set axios header
   if (isLoggedIn) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   } else {
     delete axios.defaults.headers.common['Authorization'];
   }
 
-  // Fetch activities and user registrations
+  // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch activities
         const activitiesRes = await axios.get('http://localhost:5000/api/activities');
         setActivities(activitiesRes.data);
 
-        // Fetch user registrations if logged in
-        if (isLoggedIn) {
+        if (canRegister) {
           const registrationsRes = await axios.get('http://localhost:5000/api/volunteer/user');
           setRegisteredActivities(registrationsRes.data);
         }
@@ -54,10 +59,13 @@ function ActivityList() {
       }
     };
     fetchData();
-  }, [isLoggedIn]);
+  }, [canRegister]);
 
-  // Open create form
   const handleCreateClick = () => {
+    if (!isAdmin) {
+      setError('Chỉ admin có thể tạo hoạt động');
+      return;
+    }
     setFormMode('create');
     setFormData({
       name: '',
@@ -71,8 +79,11 @@ function ActivityList() {
     });
   };
 
-  // Open edit form
   const handleEditClick = (activity) => {
+    if (!isAdmin) {
+      setError('Chỉ admin có thể sửa hoạt động');
+      return;
+    }
     setFormMode('edit');
     setEditingActivity(activity.activity_id);
     setFormData({
@@ -87,44 +98,38 @@ function ActivityList() {
     });
   };
 
-  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  // Handle file input change
   const handleFileChange = (e) => {
     setFormData({ ...formData, image: e.target.files[0] });
   };
 
-  // Handle form submission (create or update)
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isAdmin) {
+      setError('Chỉ admin có thể thực hiện hành động này');
+      return;
+    }
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('category', formData.category);
-      formDataToSend.append('location', formData.location);
-      formDataToSend.append('start_date', formData.start_date);
-      formDataToSend.append('end_date', formData.end_date);
-      formDataToSend.append('status', formData.status);
-      if (formData.image) {
-        formDataToSend.append('image', formData.image);
-      }
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value) formDataToSend.append(key, value);
+      });
 
       if (formMode === 'create') {
-        const response = await axios.post('http://localhost:5000/api/activities', formDataToSend, {
+        const res = await axios.post('http://localhost:5000/api/activities', formDataToSend, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
-        setActivities([...activities, { ...formData, activity_id: response.data.activity_id, image_url: response.data.image_url || null }]);
-      } else if (formMode === 'edit') {
-        const response = await axios.put(`http://localhost:5000/api/activities/${editingActivity}`, formDataToSend, {
+        setActivities([...activities, { ...formData, activity_id: res.data.activity_id, image_url: res.data.image_url || null }]);
+      } else {
+        const res = await axios.put(`http://localhost:5000/api/activities/${editingActivity}`, formDataToSend, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
         setActivities(activities.map(act =>
-          act.activity_id === editingActivity ? { ...act, ...formData, image_url: response.data.image_url || act.image_url } : act
+          act.activity_id === editingActivity ? { ...act, ...formData, image_url: res.data.image_url || act.image_url } : act
         ));
       }
 
@@ -146,48 +151,58 @@ function ActivityList() {
     }
   };
 
-  // Handle volunteer registration
-  const handleRegister = async (activity_id) => {
+  const handleRegister = async (id) => {
+    if (!isLoggedIn) {
+      navigate('/login');
+      return;
+    }
+    if (!canRegister) {
+      setError('Vai trò không được phép đăng ký');
+      return;
+    }
     try {
-      const response = await axios.post('http://localhost:5000/api/volunteer/register', {
-        activity_id
-      });
-      setRegisteredActivities([...registeredActivities, activity_id]);
-      alert(response.data.message);
+      console.log('Sending registration request for activity_id:', id);
+      const response = await axios.post('http://localhost:5000/api/volunteer/register', { activity_id: id });
+      console.log('Registration response:', response.data);
+      setRegisteredActivities([...registeredActivities, id]);
+      alert(response.data.message || 'Đăng ký thành công!');
       setError(null);
     } catch (err) {
-      setError('Lỗi đăng ký hoạt động: ' + (err.response?.data?.detail || err.message));
+      console.error('Registration error:', err.response?.data || err.message);
+      setError('Lỗi đăng ký: ' + (err.response?.data?.detail || err.message));
     }
   };
 
-  // Handle cancel registration
-  const handleCancelRegistration = async (activity_id) => {
-    if (!window.confirm('Bạn có chắc muốn hủy đăng ký hoạt động này?')) return;
+  const handleCancelRegistration = async (id) => {
+    if (!window.confirm('Bạn có chắc muốn hủy đăng ký?')) return;
     try {
-      const response = await axios.post('http://localhost:5000/api/volunteer/cancel', {
-        activity_id
-      });
-      setRegisteredActivities(registeredActivities.filter(id => id !== activity_id));
-      alert(response.data.message);
+      console.log('Sending cancel registration request for activity_id:', id);
+      const response = await axios.post('http://localhost:5000/api/volunteer/cancel', { activity_id: id });
+      console.log('Cancel registration response:', response.data);
+      setRegisteredActivities(registeredActivities.filter(aid => aid !== id));
+      alert(response.data.message || 'Hủy đăng ký thành công!');
       setError(null);
     } catch (err) {
+      console.error('Cancel registration error:', err.response?.data || err.message);
       setError('Lỗi hủy đăng ký: ' + (err.response?.data?.detail || err.message));
     }
   };
 
-  // Handle delete
   const handleDelete = async (id) => {
-    if (!window.confirm('Bạn có chắc muốn xóa hoạt động này?')) return;
+    if (!isAdmin) {
+      setError('Chỉ admin có thể xóa hoạt động');
+      return;
+    }
+    if (!window.confirm('Xóa hoạt động này?')) return;
     try {
       await axios.delete(`http://localhost:5000/api/activities/${id}`);
       setActivities(activities.filter(act => act.activity_id !== id));
       setError(null);
     } catch (err) {
-      setError('Lỗi xóa hoạt động: ' + err.message);
+      setError('Lỗi xóa: ' + err.message);
     }
   };
 
-  // Close form modal
   const handleCancel = () => {
     setFormMode(null);
     setEditingActivity(null);
@@ -210,19 +225,19 @@ function ActivityList() {
     <div className="p-5 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Danh sách hoạt động nhân đạo</h2>
-        <button
-          onClick={handleCreateClick}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-        >
-          Thêm hoạt động
-        </button>
+        {isAdmin && (
+          <button onClick={handleCreateClick} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+            Thêm hoạt động
+          </button>
+        )}
       </div>
+
       <table className="w-full border-collapse border border-gray-300">
         <thead>
           <tr className="bg-gray-100">
             <th className="border border-gray-300 p-2">ID</th>
             <th className="border border-gray-300 p-2">Ảnh</th>
-            <th className="border border-gray-300 p-2">Tên hoạt động</th>
+            <th className="border border-gray-300 p-2">Tên</th>
             <th className="border border-gray-300 p-2">Mô tả</th>
             <th className="border border-gray-300 p-2">Loại</th>
             <th className="border border-gray-300 p-2">Địa điểm</th>
@@ -238,14 +253,8 @@ function ActivityList() {
               <td className="border border-gray-300 p-2">{act.activity_id}</td>
               <td className="border border-gray-300 p-2">
                 {act.image_url ? (
-                  <img
-                    src={`http://localhost:5000/${act.image_url}`}
-                    alt={act.name}
-                    className="w-24 h-auto object-cover"
-                  />
-                ) : (
-                  <span>Chưa có ảnh</span>
-                )}
+                  <img src={`http://localhost:5000/${act.image_url}`} className="w-24 h-auto object-cover" alt={act.name} />
+                ) : 'Chưa có ảnh'}
               </td>
               <td className="border border-gray-300 p-2">{act.name}</td>
               <td className="border border-gray-300 p-2">{act.description}</td>
@@ -259,52 +268,35 @@ function ActivityList() {
               </td>
               <td className="border border-gray-300 p-2">{act.status}</td>
               <td className="border border-gray-300 p-2">
-                <button
-                  onClick={() => handleEditClick(act)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded mr-2 hover:bg-blue-600"
-                >
-                  Sửa
-                </button>
-                <button
-                  onClick={() => handleDelete(act.activity_id)}
-                  className="bg-red-500 text-white px-3 py-1 rounded mr-2 hover:bg-red-600"
-                >
-                  Xóa
-                </button>
-                {isLoggedIn ? (
-                  isVolunteer ? (
-                    registeredActivities.includes(act.activity_id) ? (
-                      <button onClick={() => handleCancelRegistration(act.activity_id)} className="...">
-                        Hủy đăng ký
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleRegister(act.activity_id)}
-                        className="..."
-                        disabled={act.status === 'completed'}
-                      >
-                        Đăng ký
-                      </button>
-                    )
-                  ) : (
-                    <span className="text-gray-500">Chỉ tình nguyện viên mới được đăng ký</span>
-                  )
-                ) : (
-                  <span className="text-gray-500">Đăng nhập để đăng ký</span>
+                {isAdmin && (
+                  <>
+                    <button onClick={() => handleEditClick(act)} className="bg-blue-500 text-white px-3 py-1 rounded mr-2 hover:bg-blue-600">Sửa</button>
+                    <button onClick={() => handleDelete(act.activity_id)} className="bg-red-500 text-white px-3 py-1 rounded mr-2 hover:bg-red-600">Xóa</button>
+                  </>
                 )}
-
+                {canRegister && (
+                  registeredActivities.includes(act.activity_id) ? (
+                    <button onClick={() => handleCancelRegistration(act.activity_id)} className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600">Hủy đăng ký</button>
+                  ) : (
+                    <button
+                      onClick={() => handleRegister(act.activity_id)}
+                      className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+                      disabled={act.status === 'completed'}
+                    >
+                      Đăng ký
+                    </button>
+                  )
+                )}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {formMode && (
+      {formMode && isAdmin && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">
-              {formMode === 'create' ? 'Thêm hoạt động' : 'Sửa hoạt động'}
-            </h3>
+            <h3 className="text-xl font-bold mb-4">{formMode === 'create' ? 'Thêm hoạt động' : 'Sửa hoạt động'}</h3>
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
                 <label className="block text-sm font-medium">Tên hoạt động</label>
