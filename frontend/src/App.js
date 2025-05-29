@@ -9,6 +9,9 @@ import AdminPage from './pages/AdminPage';
 import StaffPage from './pages/StaffPage';
 import ActivityList from './pages/Activities/ActivityList';
 import VolunteerPage from './pages/Volunteer/VolunteerPage';
+import DonorsList from './pages/Donate/DonorsList';
+import Donate from './pages/Donate';
+
 import './App.css';
 
 function HomePage() {
@@ -103,6 +106,8 @@ function App() {
         <Route path="/introduction" element={<Introduction />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/donors" element={<DonorsList />} />  {/* route mới cho danh sách người ủng hộ */}
+        <Route path="/donate" element={<Donate />} />
         <Route path="/register" element={<Register />} />
         <Route path="/activities" element={<ProtectedRoute><ActivityList mode={activitiesMode} /></ProtectedRoute>} />
         <Route path="/admin/*" element={<ProtectedRoute allowedRoles={['admin']}><AdminPage /></ProtectedRoute>} />
