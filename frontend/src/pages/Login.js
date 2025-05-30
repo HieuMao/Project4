@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import '../App.css';
 import axios from 'axios';
+import { Link } from 'react-router-dom'; // Thêm Link
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -12,14 +13,9 @@ function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
-      const res = await axios.post('http://localhost:5000/api/users/login', {
-        email,
-        password
-      });
+      const res = await axios.post('http://localhost:5000/api/users/login', { email, password });
       alert('Đăng nhập thành công! 🎉');
-
       const user = res.data.user;
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));  
@@ -65,6 +61,9 @@ function Login() {
               {loading ? 'Đang xử lý... ⏳' : 'Đăng nhập'}
             </button>
             <a href="/forgot-password" className="nav-button forgot-password">Quên mật khẩu?</a>
+            <Link to="/register" className="nav-button register-button" disabled={loading}>
+              Đăng ký
+            </Link>
           </form>
         </section>
       </main>

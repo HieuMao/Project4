@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import '../../App.css';
 
 function ActivityList({ mode = 'view' }) {
   const navigate = useNavigate();
@@ -8,13 +9,9 @@ function ActivityList({ mode = 'view' }) {
   const token = localStorage.getItem('token');
   const isLoggedIn = !!token;
 
-  console.log('ActivityList - mode:', mode, 'user:', user);
-
   const isAdmin = mode === 'admin';
   const isVolunteer = mode === 'volunteer';
   const canRegister = isLoggedIn && (isVolunteer || isAdmin || user?.role === 'staff');
-
-  console.log('ActivityList - isAdmin:', isAdmin, 'isVolunteer:', isVolunteer, 'canRegister:', canRegister);
 
   const [activities, setActivities] = useState([]);
   const [registeredActivities, setRegisteredActivities] = useState([]);
@@ -33,28 +30,42 @@ function ActivityList({ mode = 'view' }) {
     image: null,
   });
 
-  // Set axios header
   if (isLoggedIn) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   } else {
     delete axios.defaults.headers.common['Authorization'];
   }
 
-  // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       try {
         const activitiesRes = await axios.get('http://localhost:5000/api/activities');
-        setActivities(activitiesRes.data);
+        console.log('Raw Activities Response:', activitiesRes); // Log toàn bộ response
+        const data = activitiesRes.data;
+        if (Array.isArray(data)) {
+          console.log('Activities data:', data);
+          setActivities(data);
+        } else {
+          console.error('Data không phải mảng:', data);
+          setActivities([]);
+        }
 
         if (canRegister) {
           const registrationsRes = await axios.get('http://localhost:5000/api/volunteer/user');
-          setRegisteredActivities(registrationsRes.data);
+          console.log('Registrations data:', registrationsRes.data);
+          const registrations = registrationsRes.data;
+          if (Array.isArray(registrations)) {
+            setRegisteredActivities(registrations.map(reg => reg.activity_id));
+          } else {
+            console.error('Registrations không phải mảng:', registrations);
+            setRegisteredActivities([]);
+          }
         }
 
         setLoading(false);
       } catch (err) {
-        setError('Lỗi lấy dữ liệu: ' + err.message);
+        console.error('Error fetching data:', err.response ? err.response.data : err.message);
+        setError('Lỗi lấy dữ liệu: ' + (err.response?.data?.error || err.message));
         setLoading(false);
       }
     };
@@ -161,14 +172,11 @@ function ActivityList({ mode = 'view' }) {
       return;
     }
     try {
-      console.log('Sending registration request for activity_id:', id);
       const response = await axios.post('http://localhost:5000/api/volunteer/register', { activity_id: id });
-      console.log('Registration response:', response.data);
       setRegisteredActivities([...registeredActivities, id]);
-      alert(response.data.message || 'Đăng ký thành công!');
+      alert(response.data.message || 'Đăng ký thành công! 🎉');
       setError(null);
     } catch (err) {
-      console.error('Registration error:', err.response?.data || err.message);
       setError('Lỗi đăng ký: ' + (err.response?.data?.detail || err.message));
     }
   };
@@ -176,14 +184,11 @@ function ActivityList({ mode = 'view' }) {
   const handleCancelRegistration = async (id) => {
     if (!window.confirm('Bạn có chắc muốn hủy đăng ký?')) return;
     try {
-      console.log('Sending cancel registration request for activity_id:', id);
       const response = await axios.post('http://localhost:5000/api/volunteer/cancel', { activity_id: id });
-      console.log('Cancel registration response:', response.data);
       setRegisteredActivities(registeredActivities.filter(aid => aid !== id));
-      alert(response.data.message || 'Hủy đăng ký thành công!');
+      alert(response.data.message || 'Hủy đăng ký thành công! 🎉');
       setError(null);
     } catch (err) {
-      console.error('Cancel registration error:', err.response?.data || err.message);
       setError('Lỗi hủy đăng ký: ' + (err.response?.data?.detail || err.message));
     }
   };
@@ -218,80 +223,93 @@ function ActivityList({ mode = 'view' }) {
     });
   };
 
-  if (loading) return <p className="text-center text-gray-500">Đang tải danh sách hoạt động...</p>;
-  if (error) return <p className="text-center text-red-500">{error}</p>;
+  if (loading) return <p className="text-center">Đang tải danh sách hoạt động... ⏳</p>;
+  if (error) return <p className="error-message">{error}</p>;
 
   return (
-    <div className="p-5 max-w-7xl mx-auto">
+    <section className="content-section">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Danh sách hoạt động nhân đạo</h2>
+        <h2 className="title">Danh sách hoạt động nhân đạo</h2>
         {isAdmin && (
-          <button onClick={handleCreateClick} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+          <button onClick={handleCreateClick} className="nav-button" style={{ backgroundColor: '#28a745' }}>
             Thêm hoạt động
           </button>
         )}
       </div>
 
-      <table className="w-full border-collapse border border-gray-300">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border border-gray-300 p-2">ID</th>
-            <th className="border border-gray-300 p-2">Ảnh</th>
-            <th className="border border-gray-300 p-2">Tên</th>
-            <th className="border border-gray-300 p-2">Mô tả</th>
-            <th className="border border-gray-300 p-2">Loại</th>
-            <th className="border border-gray-300 p-2">Địa điểm</th>
-            <th className="border border-gray-300 p-2">Ngày bắt đầu</th>
-            <th className="border border-gray-300 p-2">Ngày kết thúc</th>
-            <th className="border border-gray-300 p-2">Trạng thái</th>
-            <th className="border border-gray-300 p-2">Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
+      {activities.length === 0 ? (
+        <p>Chưa có hoạt động nào để hiển thị! 😅</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {activities.map(act => (
-            <tr key={act.activity_id} className="hover:bg-gray-50">
-              <td className="border border-gray-300 p-2">{act.activity_id}</td>
-              <td className="border border-gray-300 p-2">
-                {act.image_url ? (
-                  <img src={`http://localhost:5000/${act.image_url}`} className="w-24 h-auto object-cover" alt={act.name} />
-                ) : 'Chưa có ảnh'}
-              </td>
-              <td className="border border-gray-300 p-2">{act.name}</td>
-              <td className="border border-gray-300 p-2">{act.description}</td>
-              <td className="border border-gray-300 p-2">{act.category}</td>
-              <td className="border border-gray-300 p-2">{act.location}</td>
-              <td className="border border-gray-300 p-2">
-                {act.start_date ? new Date(act.start_date).toLocaleDateString() : ''}
-              </td>
-              <td className="border border-gray-300 p-2">
-                {act.end_date ? new Date(act.end_date).toLocaleDateString() : ''}
-              </td>
-              <td className="border border-gray-300 p-2">{act.status}</td>
-              <td className="border border-gray-300 p-2">
-                {isAdmin && (
-                  <>
-                    <button onClick={() => handleEditClick(act)} className="bg-blue-500 text-white px-3 py-1 rounded mr-2 hover:bg-blue-600">Sửa</button>
-                    <button onClick={() => handleDelete(act.activity_id)} className="bg-red-500 text-white px-3 py-1 rounded mr-2 hover:bg-red-600">Xóa</button>
-                  </>
-                )}
-                {canRegister && (
-                  registeredActivities.includes(act.activity_id) ? (
-                    <button onClick={() => handleCancelRegistration(act.activity_id)} className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600">Hủy đăng ký</button>
-                  ) : (
-                    <button
-                      onClick={() => handleRegister(act.activity_id)}
-                      className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-                      disabled={act.status === 'completed'}
-                    >
-                      Đăng ký
-                    </button>
-                  )
-                )}
-              </td>
-            </tr>
+            <div key={act.activity_id} className="card">
+              {act.image_url ? (
+                <img
+                  src={`http://localhost:5000/${act.image_url}`}
+                  alt={act.name}
+                  className="w-full h-48 object-cover rounded-t-lg"
+                />
+              ) : (
+                <div className="w-full h-48 bg-gray-200 flex items-center justify-center rounded-t-lg">
+                  Chưa có ảnh
+                </div>
+              )}
+              <div className="p-4">
+                <h3 className="text-lg font-bold mb-2">{act.name}</h3>
+                <p className="text-sm text-gray-600 mb-2">{act.description}</p>
+                <p className="text-sm"><strong>Loại:</strong> {act.category}</p>
+                <p className="text-sm"><strong>Địa điểm:</strong> {act.location}</p>
+                <p className="text-sm">
+                  <strong>Thời gian:</strong>{' '}
+                  {act.start_date ? new Date(act.start_date).toLocaleDateString() : ''} -{' '}
+                  {act.end_date ? new Date(act.end_date).toLocaleDateString() : ''}
+                </p>
+                <p className="text-sm"><strong>Trạng thái:</strong> {act.status}</p>
+                <div className="mt-4 flex gap-2">
+                  {isAdmin && (
+                    <>
+                      <button
+                        onClick={() => handleEditClick(act)}
+                        className="nav-button"
+                        style={{ backgroundColor: '#007bff' }}
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        onClick={() => handleDelete(act.activity_id)}
+                        className="nav-button"
+                        style={{ backgroundColor: '#dc3545' }}
+                      >
+                        Xóa
+                      </button>
+                    </>
+                  )}
+                  {canRegister && (
+                    registeredActivities.includes(act.activity_id) ? (
+                      <button
+                        onClick={() => handleCancelRegistration(act.activity_id)}
+                        className="nav-button"
+                        style={{ backgroundColor: '#6c757d' }}
+                      >
+                        Hủy đăng ký
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleRegister(act.activity_id)}
+                        className="nav-button"
+                        style={{ backgroundColor: '#ffc107' }}
+                        disabled={act.status === 'completed'}
+                      >
+                        Đăng ký
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+      )}
 
       {formMode && isAdmin && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -305,7 +323,7 @@ function ActivityList({ mode = 'view' }) {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 p-2 rounded"
+                  className="form-input"
                   required
                 />
               </div>
@@ -315,7 +333,7 @@ function ActivityList({ mode = 'view' }) {
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 p-2 rounded"
+                  className="form-input"
                 />
               </div>
               <div className="mb-4">
@@ -324,7 +342,7 @@ function ActivityList({ mode = 'view' }) {
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 p-2 rounded"
+                  className="form-input"
                   required
                 >
                   <option value="">Chọn loại</option>
@@ -342,7 +360,7 @@ function ActivityList({ mode = 'view' }) {
                   name="location"
                   value={formData.location}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 p-2 rounded"
+                  className="form-input"
                   required
                 />
               </div>
@@ -353,7 +371,7 @@ function ActivityList({ mode = 'view' }) {
                   name="start_date"
                   value={formData.start_date}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 p-2 rounded"
+                  className="form-input"
                   required
                 />
               </div>
@@ -364,7 +382,7 @@ function ActivityList({ mode = 'view' }) {
                   name="end_date"
                   value={formData.end_date}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 p-2 rounded"
+                  className="form-input"
                 />
               </div>
               <div className="mb-4">
@@ -373,7 +391,7 @@ function ActivityList({ mode = 'view' }) {
                   name="status"
                   value={formData.status}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 p-2 rounded"
+                  className="form-input"
                   required
                 >
                   <option value="">Chọn trạng thái</option>
@@ -388,20 +406,22 @@ function ActivityList({ mode = 'view' }) {
                   type="file"
                   name="image"
                   onChange={handleFileChange}
-                  className="w-full border border-gray-300 p-2 rounded"
+                  className="form-input"
                 />
               </div>
               <div className="flex justify-end">
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="bg-gray-500 text-white px-4 py-2 rounded mr-2 hover:bg-gray-600"
+                  className="nav-button"
+                  style={{ backgroundColor: '#6c757d', marginRight: '10px' }}
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                  className="nav-button"
+                  style={{ backgroundColor: '#007bff' }}
                 >
                   {formMode === 'create' ? 'Tạo' : 'Lưu'}
                 </button>
@@ -410,7 +430,7 @@ function ActivityList({ mode = 'view' }) {
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }
 

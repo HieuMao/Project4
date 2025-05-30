@@ -316,6 +316,33 @@ ul li {
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
 }
 
+/* REGISTER BUTTON STYLES */
+.register-button {
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    background-color: #0288d1;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.register-button:hover {
+    background-color: #0277bd;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.register-button:disabled {
+    background-color: #b0bec5;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* RESPONSIVE STYLES */
 @media (max-width: 768px) {
     .content-container {
@@ -394,4 +421,35 @@ ul li {
     to {
         transform: rotate(360deg);
     }
+}
+
+/* Card layout cho danh sách hoạt động */
+.card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+/* Responsive grid */
+@media (min-width: 768px) {
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import Introduction from './pages/Introduction';
 import Contact from './pages/Contact';
@@ -22,7 +22,6 @@ function HomePage() {
     { name: "Phát triển sinh kế", description: "Người dân được hỗ trợ công cụ và kỹ năng để phát triển kinh tế.", image: "/phat-trien-sinh-ke.jpg" },
     { name: "Bảo vệ quyền lợi", description: "Hoạt động tuyên truyền và bảo vệ quyền con người.", image: "/bao-ve-quyen-loi.jpg" },
     { name: "Hỗ trợ môi trường", description: "Tình nguyện viên tham gia trồng cây và làm sạch môi trường.", image: "/ho-tro-moi-truong.jpg" }
-    
   ];
 
   return (
@@ -57,7 +56,6 @@ function ProtectedRoute({ children, allowedRoles }) {
   const userRole = user?.role || null;
 
   useEffect(() => {
-    console.log('ProtectedRoute - token:', token, 'userRole:', userRole, 'allowedRoles:', allowedRoles);
     if (!token) {
       navigate('/login');
     } else if (allowedRoles && !allowedRoles.includes(userRole)) {
@@ -70,44 +68,43 @@ function ProtectedRoute({ children, allowedRoles }) {
 
 function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const token = localStorage.getItem('token');
   const user = JSON.parse(localStorage.getItem('user'));
   const userRole = user?.role || null;
 
+  // Ẩn header trong admin hoặc volunteer
+  const isHiddenHeader = location.pathname.startsWith('/volunteer') || location.pathname.startsWith('/admin');
+
   useEffect(() => {
-    console.log('App useEffect - token:', token, 'userRole:', userRole, 'pathname:', window.location.pathname);
-    if (token && window.location.pathname === '/') {
+    if (token && location.pathname === '/') {
       switch (userRole) {
         case 'admin':
-          console.log('Redirecting admin to /admin');
           navigate('/admin');
           break;
         case 'volunteer':
-          console.log('Redirecting volunteer to homepage');
           navigate('/');
           break;
         case 'staff':
-          console.log('Redirecting staff to /staff');
           navigate('/staff');
           break;
         default:
-          console.log('No role match, staying on homepage');
           break;
       }
     }
-  }, [token, userRole, navigate]);
+  }, [token, userRole, navigate, location.pathname]);
 
   const activitiesMode = userRole === 'admin' ? 'admin' : 'view';
 
   return (
     <div className="page-container">
-      <Header />
+      {!isHiddenHeader && <Header />}
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/introduction" element={<Introduction />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/donors" element={<DonorsList />} />  
+        <Route path="/donors" element={<DonorsList />} />
         <Route path="/donate" element={<Donate />} />
         <Route path="/register" element={<Register />} />
         <Route path="/activities" element={<ProtectedRoute><ActivityList mode={activitiesMode} /></ProtectedRoute>} />

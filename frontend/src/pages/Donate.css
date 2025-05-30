@@ -1,0 +1,57 @@
+.donate-wrapper {
+  max-width: 600px;
+  margin: 60px auto;
+  background: #fff;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+}
+
+.donate-title {
+  font-size: 26px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 24px;
+  color: #0d6efd;
+}
+
+.donate-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.donate-form input,
+.donate-form select,
+.donate-form textarea {
+  font-size: 15px;
+  padding: 12px 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+  background-color: #fdfdfd;
+}
+
+.donate-form input:focus,
+.donate-form select:focus,
+.donate-form textarea:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+  outline: none;
+}
+
+.donate-form button {
+  background: linear-gradient(to right, #0d6efd, #0a58ca);
+  color: white;
+  padding: 12px 0;
+  border: none;
+  font-weight: 600;
+  font-size: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.donate-form button:hover {
+  background: #084298;
+}

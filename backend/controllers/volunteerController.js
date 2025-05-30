@@ -4,16 +4,12 @@ const { getConnection, sql } = require('../config/db');
 exports.registerVolunteer = async (req, res) => {
   try {
     const { activity_id } = req.body;
-    const user_id = req.user.user_id; // From auth middleware
+    const user_id = req.user.user_id;
 
-    // Log request for debugging
     console.log('Register request:', { user_id, activity_id });
 
-    // Validate activity_id
     if (!activity_id) {
-      return res.status(400).json({ 
-        error: 'Thiếu activity_id' 
-      });
+      return res.status(400).json({ error: 'Thiếu activity_id' });
     }
 
     const pool = await getConnection();
@@ -22,7 +18,6 @@ exports.registerVolunteer = async (req, res) => {
     request.input('user_id', sql.Int, user_id);
     request.input('activity_id', sql.Int, parseInt(activity_id));
 
-    // Check if activity exists and is open
     const activityCheck = await pool.request()
       .input('activity_id', sql.Int, parseInt(activity_id))
       .query(`SELECT status FROM activities WHERE activity_id = @activity_id`);
@@ -35,13 +30,10 @@ exports.registerVolunteer = async (req, res) => {
       return res.status(400).json({ error: 'Hoạt động đã hoàn thành, không thể đăng ký' });
     }
 
-    // Insert registration
     const query = `
-      INSERT INTO volunteer_participation 
-      (user_id, activity_id, status)
+      INSERT INTO volunteer_participation (user_id, activity_id, status)
       OUTPUT INSERTED.id
-      VALUES
-      (@user_id, @activity_id, 'pending')
+      VALUES (@user_id, @activity_id, 'pending')
     `;
 
     const result = await request.query(query);
@@ -70,7 +62,7 @@ exports.registerVolunteer = async (req, res) => {
 // Get user's registered activities
 exports.getUserRegistrations = async (req, res) => {
   try {
-    const user_id = req.user.user_id; // From auth middleware
+    const user_id = req.user.user_id;
 
     const pool = await getConnection();
     const request = pool.request();
@@ -96,16 +88,12 @@ exports.getUserRegistrations = async (req, res) => {
 exports.cancelRegistration = async (req, res) => {
   try {
     const { activity_id } = req.body;
-    const user_id = req.user.user_id; // From auth middleware
+    const user_id = req.user.user_id;
 
-    // Log request for debugging
     console.log('Cancel registration request:', { user_id, activity_id });
 
-    // Validate activity_id
     if (!activity_id) {
-      return res.status(400).json({ 
-        error: 'Thiếu activity_id' 
-      });
+      return res.status(400).json({ error: 'Thiếu activity_id' });
     }
 
     const pool = await getConnection();
@@ -139,9 +127,10 @@ exports.cancelRegistration = async (req, res) => {
     });
   }
 };
+
 exports.getActivitiesWithMembers = async (req, res) => {
   try {
-    const user_id = req.user.user_id;  // Lấy user_id từ token (giả sử đã decode)
+    const user_id = req.user.user_id;
 
     const pool = await getConnection();
 
@@ -168,7 +157,6 @@ exports.getActivitiesWithMembers = async (req, res) => {
 
     const result = await request.query(query);
 
-    // Gom nhóm hoạt động theo activity_id
     const activitiesMap = {};
 
     result.recordset.forEach(row => {
@@ -195,6 +183,18 @@ exports.getActivitiesWithMembers = async (req, res) => {
     res.status(200).json({ activities });
   } catch (err) {
     console.error('Lỗi lấy danh sách hoạt động:', err);
+    res.status(500).json({ error: 'Lấy danh sách hoạt động thất bại', detail: err.message });
+  }
+};
+
+// Thêm logic lấy tất cả hoạt động
+exports.getAllActivities = async (req, res) => {
+  try {
+    const pool = await getConnection();
+    const result = await pool.request().query('SELECT * FROM activities');
+    res.status(200).json(result.recordset);
+  } catch (err) {
+    console.error('Lỗi lấy danh sách tất cả hoạt động:', err);
     res.status(500).json({ error: 'Lấy danh sách hoạt động thất bại', detail: err.message });
   }
 };
