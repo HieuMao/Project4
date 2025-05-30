@@ -13,7 +13,7 @@ exports.createActivity = async (req, res) => {
       created_by
     } = req.body;
 
-    const image_url = req.file ? req.file.filename : null;
+    const image_url = req.file ? `uploads/${req.file.filename}` : null;
 
     const pool = await getConnection();
     const request = pool.request();
@@ -22,24 +22,42 @@ exports.createActivity = async (req, res) => {
     request.input('description', sql.NVarChar(sql.MAX), description);
     request.input('category', sql.NVarChar(20), category);
     request.input('location', sql.NVarChar(200), location);
-    request.input('start_date', sql.Date, start_date);
-    request.input('end_date', sql.Date, end_date);
+    request.input('start_date', sql.Date, start_date ? new Date(start_date) : null);
+    request.input('end_date', sql.Date, end_date ? new Date(end_date) : null);
     request.input('status', sql.NVarChar(20), status);
     request.input('created_by', sql.Int, created_by);
-    request.input('image_url', sql.NVarChar(255), image_url);  // Sửa ở đây
+    request.input('image_url', sql.NVarChar(255), image_url);
 
-    const query = `
+    const result = await request.query(`
       INSERT INTO activities 
       (name, description, category, location, start_date, end_date, status, created_by, image_url)
+      OUTPUT INSERTED.activity_id
       VALUES
       (@name, @description, @category, @location, @start_date, @end_date, @status, @created_by, @image_url)
-    `;
+    `);
 
-    await request.query(query);
+    const activityId = result.recordset[0].activity_id;
 
-    res.status(201).json({ message: 'Tạo hoạt động thành công!' });
+    // Gửi thông báo cho tất cả người dùng
+    const usersResult = await pool.request().query('SELECT user_id FROM users');
+    const users = usersResult.recordset;
+
+    for (const user of users) {
+      await pool.request()
+        .input('content', sql.NVarChar, `Hoạt động mới "${name}" đã được tạo.`)
+        .input('sent_to', sql.Int, user.user_id)
+        .query(`
+          INSERT INTO notifications (content, sent_to, sent_at)
+          VALUES (@content, @sent_to, GETDATE())
+        `);
+    }
+
+    res.status(201).json({
+      message: 'Tạo hoạt động thành công!',
+      activity_id: activityId
+    });
   } catch (err) {
-    console.error(err);
+    console.error('Lỗi tạo hoạt động:', err);
     res.status(500).json({ error: 'Tạo hoạt động thất bại', detail: err.message });
   }
 };

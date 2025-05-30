@@ -1,6 +1,43 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import ActivityList from '../Activities/ActivityList';
+
+// Component hiển thị thông báo
+const VolunteerNotifications = () => {
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch('http://localhost:5000/api/notifications'); // Thay bằng endpoint phù hợp
+        const data = await res.json();
+        setNotifications(data);
+      } catch (error) {
+        console.error('Lỗi khi lấy thông báo:', error);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
+  return (
+    <div style={{ padding: '20px', backgroundColor: '#fff', borderRadius: '5px' }}>
+      <h2>Thông báo</h2>
+      {notifications.length === 0 ? (
+        <p>Không có thông báo nào.</p>
+      ) : (
+        <ul>
+          {notifications.map((note) => (
+            <li key={note.id} style={{ marginBottom: '10px' }}>
+              <strong>{note.title}</strong><br />
+              <span>{note.message}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
 
 // Giả lập component DonorsList (bạn thay bằng component thật nếu có)
 const DonorsList = () => (
@@ -31,7 +68,8 @@ const VolunteerLayout = ({ children }) => (
         <Link to="/volunteer/registrations" style={navButtonStyle}>Đăng ký hoạt động</Link>
         <Link to="/volunteer/profile" style={navButtonStyle}>Thông tin cá nhân</Link>
         <Link to="/donate" style={navButtonStyle}>Quyên góp</Link>
-        <Link to="/donors" style={navButtonStyle}>Danh sách người ủng hộ</Link>  {/* Link mới */}
+        <Link to="/donors" style={navButtonStyle}>Danh sách người ủng hộ</Link>
+        <Link to="/volunteer/notifications" style={navButtonStyle}>Thông báo</Link> {/* ✅ Mới thêm */}
         <Link to="/introduction" style={navButtonStyle}>Giới thiệu</Link>
         <Link to="/contact" style={navButtonStyle}>Liên hệ</Link>
         <Link to="/login" style={navButtonStyle}>Đăng nhập</Link>
@@ -76,7 +114,8 @@ function VolunteerPage() {
         <Route path="activities" element={<ActivityList mode="volunteer" />} />
         <Route path="profile" element={<Placeholder title="Thông tin cá nhân" />} />
         <Route path="registrations" element={<Placeholder title="Đăng ký hoạt động" />} />
-        <Route path="/donors" element={<DonorsList />} />  {/* Route mới */}
+        <Route path="/donors" element={<DonorsList />} />
+        <Route path="notifications" element={<VolunteerNotifications />} /> {/* ✅ Route mới */}
       </Routes>
     </VolunteerLayout>
   );
