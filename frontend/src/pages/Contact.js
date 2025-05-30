@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import Header from '../components/Header';
 import '../App.css';
 import { sendContactMessage } from '../services/userService';
 
@@ -24,7 +23,6 @@ const Contact = () => {
 
   return (
     <div className="page-container">
-      <Header />
       <main className="content-container">
         <section className="content-section">
           <h2 className="title">Liên hệ</h2>

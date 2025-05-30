@@ -22,6 +22,7 @@ function HomePage() {
     { name: "Phát triển sinh kế", description: "Người dân được hỗ trợ công cụ và kỹ năng để phát triển kinh tế.", image: "/phat-trien-sinh-ke.jpg" },
     { name: "Bảo vệ quyền lợi", description: "Hoạt động tuyên truyền và bảo vệ quyền con người.", image: "/bao-ve-quyen-loi.jpg" },
     { name: "Hỗ trợ môi trường", description: "Tình nguyện viên tham gia trồng cây và làm sạch môi trường.", image: "/ho-tro-moi-truong.jpg" }
+    
   ];
 
   return (
@@ -106,7 +107,7 @@ function App() {
         <Route path="/introduction" element={<Introduction />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/donors" element={<DonorsList />} />  {/* route mới cho danh sách người ủng hộ */}
+        <Route path="/donors" element={<DonorsList />} />  
         <Route path="/donate" element={<Donate />} />
         <Route path="/register" element={<Register />} />
         <Route path="/activities" element={<ProtectedRoute><ActivityList mode={activitiesMode} /></ProtectedRoute>} />

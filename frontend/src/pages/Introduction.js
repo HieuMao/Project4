@@ -1,5 +1,4 @@
 import React from 'react';
-import Header from '../components/Header';
 import '../App.css';
 
 const Introduction = () => {
@@ -21,7 +20,6 @@ const Introduction = () => {
 
   return (
     <div className="page-container">
-      <Header />
       <main className="content-container">
         <section className="content-section">
           <h2 className="title">Giới thiệu về hoạt động nhân đạo</h2>

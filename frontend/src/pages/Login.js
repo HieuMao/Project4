@@ -1,10 +1,6 @@
-// src/pages/Login.js
 import React, { useState } from 'react';
-import Header from '../components/Header';
 import '../App.css';
 import axios from 'axios';
-
-
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -27,7 +23,7 @@ function Login() {
       const user = res.data.user;
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));  
-      if (user.role === 'admin') window.location.href = '/';
+      if (user.role === 'admin') window.location.href = '/admin';
       else if (user.role === 'staff') window.location.href = '/staff';
       else if (user.role === 'volunteer') window.location.href = '/volunteer';
       else window.location.href = '/';
@@ -40,7 +36,6 @@ function Login() {
 
   return (
     <div className="page-container">
-      <Header />
       <main className="content-container">
         <section className="content-section">
           <h2 className="title">Đăng nhập</h2>
