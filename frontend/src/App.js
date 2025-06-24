@@ -107,10 +107,12 @@ function App() {
         <Route path="/donors" element={<DonorsList />} />
         <Route path="/donate" element={<Donate />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/activities" element={<ProtectedRoute><ActivityList mode={activitiesMode} /></ProtectedRoute>} />
+        <Route path="/activities" element={<ActivityList mode={activitiesMode} />} /> {/* Public route */}
         <Route path="/admin/*" element={<ProtectedRoute allowedRoles={['admin']}><AdminPage /></ProtectedRoute>} />
         <Route path="/staff" element={<ProtectedRoute allowedRoles={['staff']}><StaffPage /></ProtectedRoute>} />
         <Route path="/volunteer/*" element={<ProtectedRoute allowedRoles={['volunteer']}><VolunteerPage /></ProtectedRoute>} />
+        <Route path="/volunteer/donate" element={<ProtectedRoute allowedRoles={['volunteer']}><Donate /></ProtectedRoute>} />
+
       </Routes>
     </div>
   );

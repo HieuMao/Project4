@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 import './Donate.css';
 
 const Donate = () => {
+  const location = useLocation();
+  const isVolunteerDonate = location.pathname === '/volunteer/donate';
   const [activities, setActivities] = useState([]);
   const [form, setForm] = useState({
     donor_name: '',
@@ -14,36 +17,58 @@ const Donate = () => {
   });
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState('');
+  const [registeredActivities, setRegisteredActivities] = useState([]);
+  const token = localStorage.getItem('token');
 
-  // Lấy danh sách hoạt động
   useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        const res = await axios.get('http://localhost:5000/api/activities');
-        setActivities(res.data);
-      } catch {
-        setMessage('Không tải được danh sách hoạt động.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchActivities();
-  }, []);
+  const fetchData = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/activities');
+      setActivities(res.data);
 
-  // Cập nhật form khi người dùng gõ
+      if (token && isVolunteerDonate) {
+        const user = JSON.parse(localStorage.getItem('user')) || {};
+        setUserName(user.name || 'Người dùng');
+        setForm((prev) => ({ ...prev, donor_name: user.name || '' }));
+
+        const registrationsRes = await axios.get('http://localhost:5000/api/volunteer/user', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const registrations = registrationsRes.data.registrations || [];
+        setRegisteredActivities(registrations.map(reg => reg.activity_id));
+      }
+    } catch (err) {
+      console.error('Fetch Error:', err.response ? err.response.data : err.message);
+      setMessage('Không tải được danh sách hoạt động hoặc thông tin người dùng.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchData();
+}, [token, isVolunteerDonate]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Gửi form
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isVolunteerDonate && !token) {
+      setMessage('Vui lòng đăng nhập với vai trò volunteer để ủng hộ.');
+      return;
+    }
     try {
-      await axios.post('http://localhost:5000/api/donate', form);
+      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+      if (isVolunteerDonate && !registeredActivities.includes(parseInt(form.activity_id))) {
+        setMessage('Bạn chỉ có thể ủng hộ cho các hoạt động đã đăng ký.');
+        return;
+      }
+      await axios.post('http://localhost:5000/api/donate', form, config);
       setMessage('Ủng hộ thành công, bạn thật tuyệt! 🌟');
       setForm({
-        donor_name: '',
+        donor_name: token && isVolunteerDonate ? userName : '',
         donor_type: 'individual',
         amount: '',
         item_description: '',
@@ -51,7 +76,7 @@ const Donate = () => {
         activity_id: ''
       });
     } catch (err) {
-      console.error(err);
+      console.error('Submit Error:', err.response ? err.response.data : err.message);
       setMessage('Có lỗi xảy ra khi gửi, thử lại nhé 😢');
     }
   };
@@ -65,15 +90,18 @@ const Donate = () => {
         <p className="donate-loading">Đang tải hoạt động... ⏳</p>
       ) : (
         <form onSubmit={handleSubmit} className="donate-form">
-          <input
-            type="text"
-            name="donor_name"
-            placeholder="Tên người ủng hộ"
-            value={form.donor_name}
-            onChange={handleChange}
-            required
-            className="donate-input"
-          />
+          {(!token || !isVolunteerDonate) && (
+            <input
+              type="text"
+              name="donor_name"
+              placeholder="Tên người ủng hộ"
+              value={form.donor_name}
+              onChange={handleChange}
+              required={!token}
+              className="donate-input"
+            />
+          )}
+          {token && isVolunteerDonate && <p className="donate-user">Tên: {userName}</p>}
 
           <select
             name="donor_type"
@@ -123,15 +151,15 @@ const Donate = () => {
             className="donate-select"
           >
             <option value="">-- Chọn hoạt động --</option>
-            {activities.length > 0 ? (
-              activities.map((act) => (
-                <option key={act.activity_id} value={act.activity_id}>
-                  {act.name}
-                </option>
-              ))
-            ) : (
-              <option disabled>Không có hoạt động nào</option>
-            )}
+            {activities.map((act) => (
+              <option
+                key={act.activity_id}
+                value={act.activity_id}
+                disabled={isVolunteerDonate && !registeredActivities.includes(act.activity_id)}
+              >
+                {act.name}
+              </option>
+            ))}
           </select>
 
           <button type="submit" className="donate-button">

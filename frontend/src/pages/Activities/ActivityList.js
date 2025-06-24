@@ -5,7 +5,7 @@ import '../../App.css';
 
 function ActivityList({ mode = 'view' }) {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user'));
+  const user = JSON.parse(localStorage.getItem('user')) || {};
   const token = localStorage.getItem('token');
   const isLoggedIn = !!token;
 
@@ -30,17 +30,21 @@ function ActivityList({ mode = 'view' }) {
     image: null,
   });
 
-  if (isLoggedIn) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  } else {
-    delete axios.defaults.headers.common['Authorization'];
-  }
+  // Đặt header Authorization chỉ khi đã đăng nhập
+  useEffect(() => {
+    if (isLoggedIn) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      delete axios.defaults.headers.common['Authorization'];
+    }
+  }, [isLoggedIn, token]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Lấy danh sách hoạt động (public)
         const activitiesRes = await axios.get('http://localhost:5000/api/activities');
-        console.log('Raw Activities Response:', activitiesRes); // Log toàn bộ response
+        console.log('Raw Activities Response:', activitiesRes);
         const data = activitiesRes.data;
         if (Array.isArray(data)) {
           console.log('Activities data:', data);
@@ -50,16 +54,19 @@ function ActivityList({ mode = 'view' }) {
           setActivities([]);
         }
 
+        // Lấy danh sách đăng ký chỉ khi đã đăng nhập
         if (canRegister) {
           const registrationsRes = await axios.get('http://localhost:5000/api/volunteer/user');
           console.log('Registrations data:', registrationsRes.data);
-          const registrations = registrationsRes.data;
+          const registrations = registrationsRes.data.registrations || [];
           if (Array.isArray(registrations)) {
             setRegisteredActivities(registrations.map(reg => reg.activity_id));
           } else {
             console.error('Registrations không phải mảng:', registrations);
             setRegisteredActivities([]);
           }
+        } else {
+          setRegisteredActivities([]); // Không đăng nhập, không có dữ liệu đăng ký
         }
 
         setLoading(false);

@@ -10,6 +10,6 @@ router.delete('/:id', (req, res, next) => {
   console.log('DELETE user with id:', req.params.id);
   next();
 }, userController.deleteUser);
-
+router.get('/users/me', userController.getUserProfile);
 
 module.exports = router;

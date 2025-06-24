@@ -154,3 +154,25 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ message: 'Lỗi server khi xóa' });
   }
 };
+// userController.js (phần getUserProfile)
+exports.getUserProfile = async (req, res) => {
+  try {
+    const user_id = req.user.user_id;
+    console.log('Fetching profile for user_id:', user_id);
+    const pool = await getConnection();
+    const result = await pool.request()
+      .input('user_id', sql.Int, user_id)
+      .query('SELECT user_id, name, email, phone, role FROM users WHERE user_id = @user_id');
+
+    if (result.recordset.length === 0) {
+      console.log('User not found for user_id:', user_id);
+      return res.status(404).json({ error: 'Người dùng không tồn tại.' });
+    }
+
+    console.log('User Profile:', result.recordset[0]);
+    res.json(result.recordset[0]);
+  } catch (err) {
+    console.error('Error fetching user profile:', err);
+    res.status(500).json({ error: 'Lỗi lấy thông tin người dùng.' });
+  }
+};

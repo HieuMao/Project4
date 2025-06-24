@@ -12,6 +12,7 @@ const Header = () => {
           <NavLink to="/activities">Các hoạt động nhân đạo</NavLink>
           <NavLink to="/introduction">Giới thiệu</NavLink>
           <NavLink to="/contact">Liên hệ</NavLink>
+          <NavLink to="/donate">Ủng hộ</NavLink>
           <Link to="/login" className="nav-button login-button">Đăng nhập</Link>
         </nav>
       </div>
