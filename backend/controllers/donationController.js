@@ -1,9 +1,11 @@
 const { getConnection, sql } = require('../config/db');
+const userPointsController = require('./userPointsController');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
-// Lấy các hoạt động đang diễn ra
 exports.getActiveActivities = async (req, res) => {
   try {
-    const pool = await getConnection(); // lấy pool từ hàm getConnection()
+    const pool = await getConnection();
     const result = await pool.request().query(`
       SELECT activity_id, name 
       FROM activities 
@@ -16,7 +18,6 @@ exports.getActiveActivities = async (req, res) => {
   }
 };
 
-// Tạo mới ủng hộ
 exports.createDonation = async (req, res) => {
   const { donor_name, donor_type, amount, item_description, payment_method, activity_id } = req.body;
   let finalDonorName = donor_name;
@@ -25,20 +26,28 @@ exports.createDonation = async (req, res) => {
     const pool = await getConnection();
     const request = pool.request();
 
-    // Nếu đã đăng nhập, lấy donor_name từ users
-    if (req.user) {
-      const user_id = req.user.user_id;
-      const userResult = await request
-        .input('user_id', sql.Int, user_id)
-        .query('SELECT name FROM users WHERE user_id = @user_id'); // Thay 'name' bằng cột chứa tên
+    let user_id = null;
 
-      if (userResult.recordset.length === 0) {
-        return res.status(404).json({ error: 'Người dùng không tồn tại.' });
+    // 👉 Tự decode token nếu có
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        user_id = decoded.user_id;
+
+        const userResult = await request
+          .input('user_id', sql.Int, user_id)
+          .query('SELECT name FROM users WHERE user_id = @user_id');
+
+        if (userResult.recordset.length > 0) {
+          finalDonorName = userResult.recordset[0].name;
+          await require('./userPointsController').updateUserPoints(user_id, 10);
+          console.log(`✅ Cộng điểm cho user_id ${user_id}`);
+        }
+      } catch (tokenErr) {
+        console.warn('⚠️ Token không hợp lệ hoặc không có user. Bỏ qua cộng điểm.');
       }
-      finalDonorName = userResult.recordset[0].name || 'Người dùng ẩn danh';
-    } else if (!donor_name) {
-      // Nếu không đăng nhập và không có donor_name, báo lỗi
-      return res.status(400).json({ error: 'Vui lòng nhập tên người ủng hộ.' });
     }
 
     request
@@ -54,13 +63,13 @@ exports.createDonation = async (req, res) => {
       VALUES (@donor_name, @donor_type, @amount, @item_description, @payment_method, @activity_id)
     `);
 
-    res.json({ message: 'Ủng hộ thành công!' });
+    res.json({ message: 'Ủng hộ thành công, bạn thật tuyệt! 🌟' });
   } catch (err) {
-    console.error('Error creating donation:', err);
-    res.status(500).json({ error: 'Lỗi tạo ủng hộ.' });
+    console.error('Lỗi khi tạo ủng hộ:', err.message);
+    res.status(500).json({ error: 'Lỗi tạo ủng hộ. Chi tiết: ' + err.message });
   }
 };
-// Lấy danh sách người đã ủng hộ (có thể phân trang hoặc không)
+
 exports.getDonorsList = async (req, res) => {
   try {
     const pool = await getConnection();

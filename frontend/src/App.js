@@ -9,6 +9,7 @@ import AdminPage from './pages/AdminPage';
 import StaffPage from './pages/StaffPage';
 import ActivityList from './pages/Activities/ActivityList';
 import VolunteerPage from './pages/Volunteer/VolunteerPage';
+import UserProfile from './pages/Volunteer/UserProfile';
 import DonorsList from './pages/Donate/DonorsList';
 import Donate from './pages/Donate';
 
@@ -112,7 +113,8 @@ function App() {
         <Route path="/staff" element={<ProtectedRoute allowedRoles={['staff']}><StaffPage /></ProtectedRoute>} />
         <Route path="/volunteer/*" element={<ProtectedRoute allowedRoles={['volunteer']}><VolunteerPage /></ProtectedRoute>} />
         <Route path="/volunteer/donate" element={<ProtectedRoute allowedRoles={['volunteer']}><Donate /></ProtectedRoute>} />
-
+        <Route path="/volunteer/donors" element={<ProtectedRoute allowedRoles={['volunteer']}><DonorsList /></ProtectedRoute>} />
+        <Route path="/volunteer/account" element={<UserProfile />} />
       </Routes>
     </div>
   );

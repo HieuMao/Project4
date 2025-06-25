@@ -31,9 +31,9 @@ const VolunteerLayout = ({ children }) => {
             <Link to="/volunteer" className="nav-button">Trang chủ</Link>
             <Link to="/volunteer/activities" className="nav-button">Các hoạt động nhân đạo</Link>
             <Link to="/volunteer/registrations" className="nav-button">Đăng ký hoạt động</Link>
-            <Link to="/volunteer/profile" className="nav-button">Thông tin cá nhân</Link>
+            <Link to="/volunteer/account" className="nav-button">Thông tin cá nhân</Link>
             <Link to="/volunteer/donate" className="nav-button">Quyên góp</Link>
-            <Link to="/donors" className="nav-button">Danh sách người ủng hộ</Link>
+            <Link to="/volunteer/donors" className="nav-button">Danh sách người ủng hộ</Link>
             <Link to="/introduction" className="nav-button">Giới thiệu</Link>
             <Link to="/contact" className="nav-button">Liên hệ</Link>
             {user ? (

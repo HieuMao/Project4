@@ -19,32 +19,44 @@ const Donate = () => {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
   const [registeredActivities, setRegisteredActivities] = useState([]);
+  const [points, setPoints] = useState(0);
   const token = localStorage.getItem('token');
 
   useEffect(() => {
   const fetchData = async () => {
     try {
+      console.log('Fetching activities...');
       const res = await axios.get('http://localhost:5000/api/activities');
-      setActivities(res.data);
+      setActivities(Array.isArray(res.data) ? res.data : []);
 
       if (token && isVolunteerDonate) {
         const user = JSON.parse(localStorage.getItem('user')) || {};
         setUserName(user.name || 'Người dùng');
         setForm((prev) => ({ ...prev, donor_name: user.name || '' }));
 
+        console.log('Fetching registrations...');
         const registrationsRes = await axios.get('http://localhost:5000/api/volunteer/user', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const registrations = registrationsRes.data.registrations || [];
-        setRegisteredActivities(registrations.map(reg => reg.activity_id));
+        setRegisteredActivities(registrations.map(reg => Number(reg.activity_id)));
+
+        // 👉 GỌI API lấy điểm ở đây
+        console.log('Fetching points...');
+        const pointsRes = await axios.get('http://localhost:5000/api/users/points', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        console.log('Points response:', pointsRes.data);
+        setPoints(pointsRes.data.total_points || 0);
       }
     } catch (err) {
       console.error('Fetch Error:', err.response ? err.response.data : err.message);
-      setMessage('Không tải được danh sách hoạt động hoặc thông tin người dùng.');
+      setMessage('Không tải được danh sách hoạt động hoặc thông tin người dùng. Chi tiết: ' + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
   };
+
   fetchData();
 }, [token, isVolunteerDonate]);
 
@@ -61,11 +73,9 @@ const Donate = () => {
     }
     try {
       const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-      if (isVolunteerDonate && !registeredActivities.includes(parseInt(form.activity_id))) {
-        setMessage('Bạn chỉ có thể ủng hộ cho các hoạt động đã đăng ký.');
-        return;
-      }
-      await axios.post('http://localhost:5000/api/donate', form, config);
+      console.log('Submitting donation with token:', token ? token.substring(0, 10) + '...' : 'No token'); // Debug token
+      const response = await axios.post('http://localhost:5000/api/donate', form, config);
+      console.log('Donation response:', response.data);
       setMessage('Ủng hộ thành công, bạn thật tuyệt! 🌟');
       setForm({
         donor_name: token && isVolunteerDonate ? userName : '',
@@ -75,15 +85,24 @@ const Donate = () => {
         payment_method: 'cash',
         activity_id: ''
       });
+      if (token && isVolunteerDonate) {
+        console.log('Fetching points after donation...');
+        const pointsRes = await axios.get('http://localhost:5000/api/users/points', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        console.log('Points response:', pointsRes.data);
+        setPoints(pointsRes.data.total_points || 0);
+      }
     } catch (err) {
       console.error('Submit Error:', err.response ? err.response.data : err.message);
-      setMessage('Có lỗi xảy ra khi gửi, thử lại nhé 😢');
+      setMessage('Có lỗi xảy ra khi gửi, thử lại nhé 😢. Chi tiết:', err.response?.data?.error || err.message);
     }
   };
 
   return (
     <div className="donate-container">
       <h2 className="donate-title">Ủng Hộ Hoạt Động</h2>
+      {token && isVolunteerDonate && <p className="donate-points">Tổng điểm của bạn: {points}</p>}
 
       {message && <p className="donate-message">{message}</p>}
       {loading ? (
@@ -151,15 +170,18 @@ const Donate = () => {
             className="donate-select"
           >
             <option value="">-- Chọn hoạt động --</option>
-            {activities.map((act) => (
-              <option
-                key={act.activity_id}
-                value={act.activity_id}
-                disabled={isVolunteerDonate && !registeredActivities.includes(act.activity_id)}
-              >
-                {act.name}
-              </option>
-            ))}
+            {activities.length > 0 ? (
+              activities.map((act) => (
+                <option
+                  key={act.activity_id}
+                  value={act.activity_id}
+                >
+                  {act.name || `Hoạt động ${act.activity_id}`}
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>Không có hoạt động nào</option>
+            )}
           </select>
 
           <button type="submit" className="donate-button">
