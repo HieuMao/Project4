@@ -18,7 +18,7 @@ function Login() {
       alert('Đăng nhập thành công! 🎉');
       const user = res.data.user;
       localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));  
+      localStorage.setItem('user', JSON.stringify(res.data.user));
       if (user.role === 'admin') window.location.href = '/admin';
       else if (user.role === 'staff') window.location.href = '/staff';
       else if (user.role === 'volunteer') window.location.href = '/volunteer';
@@ -60,11 +60,14 @@ function Login() {
             <button type="submit" className="nav-button" disabled={loading}>
               {loading ? 'Đang xử lý... ⏳' : 'Đăng nhập'}
             </button>
-            <a href="/forgot-password" className="nav-button forgot-password">Quên mật khẩu?</a>
+            <Link to="/forgot-password" className="nav-button forgot-password">
+              Quên mật khẩu?
+            </Link>
             <Link to="/register" className="nav-button register-button" disabled={loading}>
               Đăng ký
             </Link>
           </form>
+
         </section>
       </main>
     </div>

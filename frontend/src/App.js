@@ -12,6 +12,7 @@ import VolunteerPage from './pages/Volunteer/VolunteerPage';
 import UserProfile from './pages/Volunteer/UserProfile';
 import DonorsList from './pages/Donate/DonorsList';
 import Donate from './pages/Donate';
+import ForgotPassword from './pages/ForgotPassword';
 
 import './App.css';
 
@@ -115,6 +116,8 @@ function App() {
         <Route path="/volunteer/donate" element={<ProtectedRoute allowedRoles={['volunteer']}><Donate /></ProtectedRoute>} />
         <Route path="/volunteer/donors" element={<ProtectedRoute allowedRoles={['volunteer']}><DonorsList /></ProtectedRoute>} />
         <Route path="/volunteer/account" element={<UserProfile />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+
       </Routes>
     </div>
   );

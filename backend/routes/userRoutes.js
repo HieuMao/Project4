@@ -19,4 +19,7 @@ router.get('/points', authMiddleware, (req, res) => {
   userPointsController.getUserPoints(req, res);
 });
 router.post('/donate', authMiddleware, donationController.createDonation); // Thêm authMiddleware
+
+router.post('/forgot-password', userController.requestPasswordReset);
+router.post('/reset-password', userController.resetPassword);
 module.exports = router;

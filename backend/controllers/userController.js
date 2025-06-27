@@ -1,5 +1,6 @@
 const userModel = require('../models/userModel');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { getConnection, sql } = require('../config/db');  // chỉ import 1 lần
 
@@ -174,5 +175,80 @@ exports.getUserProfile = async (req, res) => {
   } catch (err) {
     console.error('Error fetching user profile:', err);
     res.status(500).json({ error: 'Lỗi lấy thông tin người dùng.' });
+  }
+};
+exports.requestPasswordReset = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expire = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
+
+    const pool = await getConnection();
+    const result = await pool.request()
+      .input('email', sql.NVarChar, email)
+      .query('SELECT user_id FROM users WHERE email = @email');
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ error: 'Email không tồn tại.' });
+    }
+
+    await pool.request()
+      .input('token', sql.NVarChar, token)
+      .input('expire', sql.DateTime, expire)
+      .input('email', sql.NVarChar, email)
+      .query(`
+        UPDATE users SET reset_token = @token, reset_token_expire = @expire
+        WHERE email = @email
+      `);
+
+    const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+    console.log('👉 Link reset mật khẩu:', resetLink);
+
+    // TODO: Gửi email thật ở đây
+
+    res.json({ message: 'Đã gửi link đặt lại mật khẩu. Kiểm tra email.' });
+  } catch (err) {
+    console.error('Lỗi requestPasswordReset:', err.message);
+    res.status(500).json({ error: 'Có lỗi xảy ra.' });
+  }
+};
+
+// reset pass
+exports.resetPassword = async (req, res) => {
+  const { token, new_password } = req.body;
+
+  try {
+    const pool = await getConnection();
+    const result = await pool.request()
+      .input('token', sql.NVarChar, token)
+      .query(`
+        SELECT user_id, reset_token_expire
+        FROM users WHERE reset_token = @token
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(400).json({ error: 'Token không hợp lệ.' });
+    }
+
+    const user = result.recordset[0];
+    if (new Date(user.reset_token_expire) < new Date()) {
+      return res.status(400).json({ error: 'Token đã hết hạn.' });
+    }
+
+    const hashed = require('bcryptjs').hashSync(new_password, 10);
+    await pool.request()
+      .input('token', sql.NVarChar, token)
+      .input('hashed', sql.NVarChar, hashed)
+      .query(`
+        UPDATE users 
+        SET password = @hashed, reset_token = NULL, reset_token_expire = NULL 
+        WHERE reset_token = @token
+      `);
+
+    res.json({ message: 'Đặt lại mật khẩu thành công.' });
+  } catch (err) {
+    console.error('Lỗi resetPassword:', err.message);
+    res.status(500).json({ error: 'Lỗi khi đặt lại mật khẩu.' });
   }
 };
